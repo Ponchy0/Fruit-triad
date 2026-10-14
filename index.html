@@ -1,0 +1,3039 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#1a0f30">
+<meta name="description" content="Фруктовая Триада — три в ряд с бонусами, волнами и магией">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Триада">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="icon" type="image/png" href="./icons/icon-192.png">
+<title>Фруктовая Триада</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%;
+    background: var(--bg-base, #07030f);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text, #fff);
+    overflow: hidden;
+    user-select: none;
+    touch-action: none;
+    transition: background 0.3s;
+    padding-top: env(safe-area-inset-top, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  #bg-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; display: block; }
+
+  body.theme-neon {
+    --bg-base:#07030f; --text:#fff;
+    --board-bg1:rgba(30,27,58,0.85); --board-bg2:rgba(20,16,40,0.9);
+    --board-glow:rgba(120,80,255,0.15);
+    --btn-bg1:rgba(255,255,255,0.14); --btn-bg2:rgba(255,255,255,0.05);
+    --btn-border:rgba(255,255,255,0.15);
+    --accent1:#ff6ec7; --accent2:#a84cff; --accent3:#63e6ff;
+    --cell-a:rgba(255,255,255,0.035); --cell-b:rgba(255,255,255,0.07);
+    --crystal:#7efff5;
+  }
+  body.theme-dark {
+    --bg-base:#000; --text:#e8e8e8;
+    --board-bg1:rgba(20,20,20,0.95); --board-bg2:rgba(10,10,10,0.95);
+    --board-glow:rgba(80,80,80,0.2);
+    --btn-bg1:rgba(255,255,255,0.1); --btn-bg2:rgba(255,255,255,0.03);
+    --btn-border:rgba(255,255,255,0.12);
+    --accent1:#a0a0a0; --accent2:#707070; --accent3:#c0c0c0;
+    --cell-a:rgba(255,255,255,0.025); --cell-b:rgba(255,255,255,0.05);
+    --crystal:#b0e0ff;
+  }
+  body.theme-light {
+    --bg-base:#f0e8ff; --text:#2a1a4a;
+    --board-bg1:rgba(255,255,255,0.85); --board-bg2:rgba(240,235,255,0.9);
+    --board-glow:rgba(180,140,255,0.3);
+    --btn-bg1:rgba(255,255,255,0.9); --btn-bg2:rgba(255,255,255,0.6);
+    --btn-border:rgba(120,80,200,0.2);
+    --accent1:#d63ec9; --accent2:#7c3aed; --accent3:#2a9df4;
+    --cell-a:rgba(120,80,200,0.06); --cell-b:rgba(120,80,200,0.12);
+    --crystal:#0088ff;
+  }
+  body.theme-retro {
+    --bg-base:#0a0520; --text:#7dffa5;
+    --board-bg1:rgba(20,40,20,0.9); --board-bg2:rgba(10,20,10,0.95);
+    --board-glow:rgba(0,255,100,0.25);
+    --btn-bg1:rgba(125,255,165,0.15); --btn-bg2:rgba(125,255,165,0.05);
+    --btn-border:rgba(125,255,165,0.3);
+    --accent1:#7dffa5; --accent2:#3aaa60; --accent3:#f4ff7d;
+    --cell-a:rgba(125,255,165,0.05); --cell-b:rgba(125,255,165,0.1);
+    --crystal:#f4ff7d;
+  }
+
+  .screen {
+    position: fixed; inset: 0; z-index: 10;
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 16px; gap: 10px; overflow-y: auto;
+  }
+  .screen.active { display: flex; }
+
+  #shopScreen.inGame {
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    z-index: 20;
+  }
+
+  .game-title {
+    font-size: 40px; font-weight: 900; letter-spacing: 2px;
+    text-align: center;
+    background: linear-gradient(135deg, var(--accent1) 0%, #ffb347 30%, var(--accent3) 70%, var(--accent2) 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 4px 20px var(--accent2));
+    line-height: 1.1; margin-bottom: 6px;
+    animation: titlePulse 3s ease-in-out infinite;
+  }
+  @keyframes titlePulse {
+    0%, 100% { filter: drop-shadow(0 4px 20px var(--accent2)); }
+    50% { filter: drop-shadow(0 4px 30px var(--accent1)); }
+  }
+  .game-sub { font-size: 12px; opacity: 0.5; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 14px; }
+
+  .menu-btn {
+    width: 100%; max-width: 340px;
+    padding: 13px 22px; border: none; border-radius: 14px;
+    font-size: 15px; font-weight: 700; letter-spacing: 0.5px;
+    color: var(--text);
+    background: linear-gradient(180deg, var(--btn-bg1), var(--btn-bg2));
+    box-shadow: inset 0 0 0 1px var(--btn-border), 0 8px 24px rgba(0,0,0,0.4);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    cursor: pointer;
+    transition: transform 0.12s;
+    position: relative;
+  }
+  .menu-btn:active { transform: scale(0.96); }
+  .menu-btn.primary {
+    background: linear-gradient(180deg, var(--accent1), var(--accent2));
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3), 0 8px 30px var(--accent1);
+  }
+  .menu-btn.secondary {
+    background: linear-gradient(180deg, var(--accent3), #3d9aff);
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3), 0 8px 30px var(--accent3);
+  }
+  .menu-btn.crystal {
+    background: linear-gradient(180deg, var(--crystal), #3d9aff);
+    color: #04203a;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4), 0 8px 30px var(--crystal);
+  }
+  .menu-btn.daily {
+    background: linear-gradient(180deg, #ffd54a, #ff9800);
+    color: #2a1a00;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4), 0 8px 30px rgba(255,180,60,0.5);
+    animation: dailyPulse 2s ease-in-out infinite;
+  }
+  @keyframes dailyPulse {
+    0%, 100% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4), 0 8px 30px rgba(255,180,60,0.5); }
+    50% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6), 0 8px 40px rgba(255,210,100,0.9); }
+  }
+  .menu-btn:disabled { opacity: 0.4; filter: grayscale(0.8); cursor: not-allowed; }
+  .menu-btn .badge {
+    position: absolute; top: -6px; right: -6px;
+    background: #ff3b5c;
+    color: #fff;
+    font-size: 11px; font-weight: 800;
+    min-width: 20px; height: 20px;
+    border-radius: 10px;
+    padding: 0 6px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.3);
+  }
+
+  .screen-title {
+    font-size: 24px; font-weight: 800; letter-spacing: 1px;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, #ffb347, var(--accent1));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  #recordsList {
+    width: 100%; max-width: 400px;
+    background: var(--btn-bg2); border-radius: 16px; padding: 10px;
+    box-shadow: inset 0 0 0 1px var(--btn-border);
+    max-height: 55vh; overflow-y: auto;
+  }
+  .record-row {
+    display: flex; align-items: center;
+    padding: 9px 12px; border-radius: 10px;
+    gap: 10px; font-size: 14px;
+  }
+  .record-row:nth-child(odd) { background: var(--cell-a); }
+  .record-row.me {
+    background: linear-gradient(90deg, var(--accent1), var(--accent2));
+    color: #fff;
+  }
+  .record-place { font-weight: 800; font-size: 16px; min-width: 30px; color: #ffd54a; }
+  .record-row:nth-child(1) .record-place { color: #ffd700; text-shadow: 0 0 12px rgba(255,215,0,0.7); }
+  .record-row:nth-child(2) .record-place { color: #d8d8d8; }
+  .record-row:nth-child(3) .record-place { color: #cd7f32; }
+  .record-name { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .record-score { font-weight: 800; color: var(--accent3); font-variant-numeric: tabular-nums; }
+  .record-row.me .record-score { color: #fff; }
+  .record-date { font-size: 10px; opacity: 0.5; min-width: 50px; text-align: right; }
+
+  .settings-section {
+    width: 100%; max-width: 400px;
+    background: var(--btn-bg2); border-radius: 16px; padding: 4px;
+    box-shadow: inset 0 0 0 1px var(--btn-border);
+    margin-bottom: 8px;
+  }
+  .settings-label {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    opacity: 0.6; padding: 8px 12px 5px;
+  }
+  .switch-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px; border-radius: 10px; gap: 10px;
+  }
+  .switch-row .label { font-size: 13px; font-weight: 600; }
+  .switch-row .value {
+    font-size: 13px; font-weight: 600;
+    background: rgba(0,0,0,0.3);
+    padding: 6px 10px; border-radius: 8px;
+    border: none; color: var(--text);
+    text-align: right; min-width: 80px;
+  }
+  body.theme-light .switch-row .value { background: rgba(120,80,200,0.12); }
+  .danger-btn {
+    background: linear-gradient(180deg, #ff5e6c, #c71838) !important;
+    color: #fff !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25), 0 6px 20px rgba(199,24,56,0.5) !important;
+  }
+  .theme-picker { display: flex; gap: 6px; padding: 4px 6px 8px; flex-wrap: wrap; }
+  .theme-chip {
+    flex: 1; min-width: 60px;
+    padding: 8px 4px; border-radius: 10px;
+    border: 2px solid transparent;
+    background: var(--btn-bg1); color: var(--text);
+    font-size: 11px; font-weight: 700; cursor: pointer;
+    text-align: center; transition: all 0.15s;
+    box-shadow: inset 0 0 0 1px var(--btn-border);
+  }
+  .theme-chip.active {
+    border-color: var(--accent1);
+    box-shadow: 0 0 18px var(--accent1);
+    transform: scale(1.02);
+  }
+  .theme-chip .swatch { width: 100%; height: 14px; border-radius: 4px; margin-bottom: 4px; }
+  .swatch-neon { background: linear-gradient(90deg, #ff6ec7, #a84cff, #63e6ff); }
+  .swatch-dark { background: linear-gradient(90deg, #333, #666, #999); }
+  .swatch-light { background: linear-gradient(90deg, #d63ec9, #7c3aed, #2a9df4); }
+  .swatch-retro { background: linear-gradient(90deg, #7dffa5, #3aaa60, #f4ff7d); }
+
+  .size-picker { display: flex; gap: 5px; padding: 4px 6px 8px; }
+  .size-chip {
+    flex: 1; padding: 8px 4px; border-radius: 10px;
+    border: 2px solid transparent;
+    background: var(--btn-bg1); color: var(--text);
+    font-size: 12px; font-weight: 700; cursor: pointer;
+    text-align: center; transition: all 0.15s;
+    box-shadow: inset 0 0 0 1px var(--btn-border);
+  }
+  .size-chip.active {
+    border-color: var(--accent3);
+    box-shadow: 0 0 18px var(--accent3);
+    transform: scale(1.02);
+  }
+
+  .switch {
+    position: relative; width: 48px; height: 28px;
+    border-radius: 14px; background: rgba(0,0,0,0.4);
+    box-shadow: inset 0 0 0 1px var(--btn-border);
+    cursor: pointer; transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  body.theme-light .switch { background: rgba(120,80,200,0.2); }
+  .switch.on { background: linear-gradient(90deg, var(--accent1), var(--accent2)); }
+  .switch::after {
+    content: ''; position: absolute;
+    top: 3px; left: 3px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    transition: transform 0.2s;
+  }
+  .switch.on::after { transform: translateX(20px); }
+
+  .volume-slider {
+    flex: 1; margin: 0 8px;
+    -webkit-appearance: none; appearance: none;
+    height: 6px; border-radius: 3px;
+    background: var(--btn-bg1);
+    box-shadow: inset 0 0 0 1px var(--btn-border);
+  }
+  .volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: linear-gradient(180deg, var(--accent1), var(--accent2));
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5); cursor: pointer;
+  }
+  .volume-slider::-moz-range-thumb {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: linear-gradient(180deg, var(--accent1), var(--accent2));
+    border: none;
+  }
+
+  #nickInput {
+    width: 100%; max-width: 300px;
+    padding: 16px 20px; font-size: 20px; font-weight: 700;
+    text-align: center; border-radius: 14px; border: none;
+    background: var(--btn-bg1); color: var(--text);
+    box-shadow: inset 0 0 0 2px var(--accent1);
+    letter-spacing: 1px;
+  }
+  #nickInput:focus {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--accent1), 0 0 24px var(--accent1);
+  }
+  .nick-hint { font-size: 12px; opacity: 0.5; margin-top: 4px; }
+
+  #gameScreen {
+    position: fixed; inset: 0; z-index: 10;
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 6px; gap: 6px;
+  }
+  #gameScreen.active { display: flex; }
+
+  #topBar { display: flex; gap: 6px; align-items: center; font-size: 16px; font-weight: 700; flex-wrap: wrap; justify-content: center; }
+  #topBar .stat {
+    background: linear-gradient(180deg, var(--btn-bg1), var(--btn-bg2));
+    padding: 5px 10px; border-radius: 10px; min-width: 60px; text-align: center;
+    box-shadow: inset 0 0 0 1px var(--btn-border), 0 4px 12px rgba(0,0,0,0.5);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
+  #topBar .stat span {
+    display: block; font-size: 9px; opacity: 0.55;
+    font-weight: 500; margin-bottom: 1px; letter-spacing: 0.8px;
+  }
+  #topBar .stat.mini { min-width: 48px; padding: 4px 8px; font-size: 13px; }
+  #topBar .stat.mini span { font-size: 8px; }
+  .icon-btn {
+    width: 36px; height: 36px;
+    border: none; border-radius: 10px;
+    background: linear-gradient(180deg, var(--btn-bg1), var(--btn-bg2));
+    color: var(--text); font-size: 16px;
+    box-shadow: inset 0 0 0 1px var(--btn-border), 0 4px 12px rgba(0,0,0,0.4);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.12s;
+  }
+  .icon-btn:active { transform: scale(0.92); }
+
+  #goalBar {
+    width: 100%; max-width: 400px;
+    height: 22px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 11px;
+    box-shadow: inset 0 0 0 1px var(--btn-border);
+    overflow: hidden;
+    position: relative;
+    display: none;
+  }
+  #goalBar.active { display: block; }
+  #goalFill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent1), var(--accent3));
+    width: 0%;
+    transition: width 0.3s ease;
+    box-shadow: 0 0 12px var(--accent1);
+  }
+  #goalText {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+    letter-spacing: 0.5px;
+  }
+  #goalInfo {
+    display: none;
+    font-size: 11px;
+    opacity: 0.75;
+    text-align: center;
+    padding: 4px 8px;
+    background: rgba(0,0,0,0.25);
+    border-radius: 8px;
+    max-width: 400px;
+  }
+  #goalInfo.active { display: block; }
+  #goalInfo .goal-row { padding: 2px 0; }
+  #goalInfo .goal-row.done { color: #7dffa5; opacity: 1; }
+  #goalInfo .goal-row.pending { opacity: 0.8; }
+
+  #board {
+    position: relative; touch-action: none;
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--board-bg1) 0%, var(--board-bg2) 100%);
+    padding: 6px;
+    box-shadow:
+      0 20px 60px rgba(0,0,0,0.75),
+      0 0 0 1px var(--btn-border),
+      0 0 36px var(--board-glow),
+      inset 0 1px 0 rgba(255,255,255,0.18);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  canvas#cv { display: block; border-radius: 12px; }
+  #msg {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none; font-size: 20px; font-weight: 800;
+    opacity: 0; transition: opacity 0.3s;
+    text-shadow: 0 3px 12px rgba(0,0,0,0.9);
+    text-align: center; padding: 20px; color: #fff5b8;
+  }
+  #msg.show { opacity: 1; }
+
+  #floaters {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .floater {
+    position: absolute;
+    font-size: 16px; font-weight: 800;
+    color: var(--crystal);
+    text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 12px var(--crystal);
+    animation: floatUp 1s ease-out forwards;
+    pointer-events: none;
+  }
+  @keyframes floatUp {
+    0% { opacity: 0; transform: translateY(0) scale(0.8); }
+    20% { opacity: 1; transform: translateY(-8px) scale(1.1); }
+    100% { opacity: 0; transform: translateY(-46px) scale(1); }
+  }
+
+  #comboDisplay {
+    position: absolute;
+    top: 30%; left: 50%;
+    transform: translateX(-50%);
+    font-size: 32px; font-weight: 900;
+    color: #ffd54a;
+    text-shadow: 0 4px 20px rgba(255,180,60,1), 0 0 30px rgba(255,120,180,1);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    letter-spacing: 2px;
+    z-index: 5;
+  }
+  #comboDisplay.show { opacity: 1; animation: comboPop 0.5s ease-out; }
+  @keyframes comboPop {
+    0% { transform: translateX(-50%) scale(0.5); }
+    50% { transform: translateX(-50%) scale(1.3); }
+    100% { transform: translateX(-50%) scale(1); }
+  }
+
+  #abilities {
+    display: flex; gap: 6px;
+    justify-content: center; max-width: 100%;
+    padding: 5px 7px;
+    background: var(--btn-bg2); border-radius: 12px;
+    box-shadow: inset 0 0 0 1px var(--btn-border);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    align-items: stretch;
+  }
+  .ability-btn {
+    position: relative;
+    background: linear-gradient(180deg, var(--btn-bg1), var(--btn-bg2));
+    border: none; color: var(--text);
+    padding: 6px 8px;
+    border-radius: 10px;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: inset 0 0 0 1px var(--btn-border), 0 4px 10px rgba(0,0,0,0.35);
+    min-width: 52px; height: 52px;
+    transition: transform 0.1s, background 0.15s;
+    touch-action: manipulation;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 1px;
+  }
+  .ability-btn:active { transform: scale(0.92); }
+  .ability-btn.active {
+    background: linear-gradient(180deg, #ffd54a, #f7a800);
+    color: #2a1a00;
+    box-shadow: 0 0 22px rgba(255,200,60,0.9), inset 0 0 0 1px rgba(255,255,255,0.5);
+    transform: scale(1.05);
+  }
+  .ability-btn.locked {
+    opacity: 0.4;
+    filter: grayscale(1);
+  }
+  .ability-btn .count {
+    position: absolute;
+    top: -4px; right: -4px;
+    background: linear-gradient(180deg, var(--accent1), var(--accent2));
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    min-width: 18px; height: 18px;
+    border-radius: 9px;
+    padding: 0 5px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.3);
+  }
+  .ability-btn .count.zero { background: #444; opacity: 0.6; }
+  .ability-btn .lbl {
+    font-size: 8px; opacity: 0.7; font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .ability-btn.shop-open {
+    background: linear-gradient(180deg, var(--crystal), #3d9aff);
+    color: #04203a;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4), 0 4px 10px rgba(0,0,0,0.35), 0 0 14px rgba(126,255,245,0.5);
+    font-size: 22px;
+  }
+
+  #hint { font-size: 10px; opacity: 0.5; text-align: center; letter-spacing: 0.3px; }
+
+  .shop-tabs {
+    display: flex; gap: 4px;
+    background: var(--btn-bg2);
+    border-radius: 12px;
+    padding: 4px;
+    box-shadow: inset 0 0 0 1px var(--btn-border);
+    margin-bottom: 10px;
+    max-width: 420px;
+    width: 100%;
+  }
+  .shop-tab {
+    flex: 1;
+    padding: 8px 6px;
+    border-radius: 9px;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    opacity: 0.6;
+  }
+  .shop-tab.active {
+    background: linear-gradient(180deg, var(--accent1), var(--accent2));
+    color: #fff;
+    opacity: 1;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+  .shop-grid {
+    display: flex; flex-direction: column;
+    gap: 8px;
+    width: 100%; max-width: 420px;
+    max-height: 55vh;
+    overflow-y: auto;
+  }
+  .shop-item {
+    display: flex; align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--btn-bg2);
+    border-radius: 14px;
+    box-shadow: inset 0 0 0 1px var(--btn-border);
+    backdrop-filter: blur(8px);
+  }
+  .shop-item .icon {
+    font-size: 26px;
+    width: 42px; height: 42px;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(180deg, var(--btn-bg1), var(--btn-bg2));
+    border-radius: 10px;
+    box-shadow: inset 0 0 0 1px var(--btn-border);
+    flex-shrink: 0;
+  }
+  .shop-item .info { flex: 1; min-width: 0; }
+  .shop-item .info .name { font-weight: 700; font-size: 14px; margin-bottom: 2px; }
+  .shop-item .info .desc { font-size: 11px; opacity: 0.6; }
+  .shop-item .info .level-info { font-size: 10px; color: var(--crystal); font-weight: 700; margin-top: 3px; }
+  .shop-item .buy-btn {
+    background: linear-gradient(180deg, var(--crystal), #3d9aff);
+    color: #04203a;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-weight: 800;
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4), 0 4px 12px rgba(0,0,0,0.3);
+    display: flex; align-items: center; gap: 4px;
+    transition: transform 0.12s;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .shop-item .buy-btn:active { transform: scale(0.94); }
+  .shop-item .buy-btn:disabled {
+    opacity: 0.4;
+    filter: grayscale(0.8);
+    cursor: not-allowed;
+  }
+  .shop-item .buy-btn.maxed {
+    background: linear-gradient(180deg, #7dffa5, #3aaa60);
+    color: #04230a;
+  }
+  .crystal-balance {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 18px;
+    background: var(--btn-bg2);
+    border-radius: 14px;
+    box-shadow: inset 0 0 0 1px var(--btn-border);
+    font-weight: 800;
+    font-size: 18px;
+    color: var(--crystal);
+    margin-bottom: 8px;
+  }
+  .crystal-balance .icon { font-size: 22px; }
+
+  .daily-info {
+    text-align: center;
+    background: var(--btn-bg2);
+    border-radius: 18px;
+    padding: 20px 24px;
+    box-shadow: inset 0 0 0 1px var(--btn-border);
+    max-width: 400px;
+    width: 100%;
+    margin-bottom: 14px;
+  }
+  .daily-info h2 {
+    font-size: 26px; margin-bottom: 8px;
+    background: linear-gradient(135deg, #ffb347, var(--accent1));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .daily-streak {
+    display: flex; justify-content: center; gap: 4px;
+    margin: 14px 0;
+    flex-wrap: wrap;
+  }
+  .daily-day {
+    width: 40px; height: 48px;
+    border-radius: 8px;
+    background: var(--btn-bg1);
+    box-shadow: inset 0 0 0 1px var(--btn-border);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700;
+    opacity: 0.5;
+    position: relative;
+  }
+  .daily-day .num { font-size: 13px; color: var(--crystal); font-weight: 800; margin-top: 2px; }
+  .daily-day.claimed { background: linear-gradient(180deg, #7dffa5, #3aaa60); color: #04230a; opacity: 1; }
+  .daily-day.today {
+    background: linear-gradient(180deg, #ffd54a, #ff9800);
+    color: #2a1a00;
+    opacity: 1;
+    box-shadow: 0 0 20px rgba(255,180,60,0.9), inset 0 0 0 1px rgba(255,255,255,0.4);
+    transform: scale(1.1);
+  }
+
+  .star-row {
+    display: flex; justify-content: center;
+    gap: 12px; margin: 14px 0;
+  }
+  .star-icon {
+    font-size: 44px;
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
+    transition: transform 0.3s;
+    opacity: 0.25;
+  }
+  .star-icon.earned {
+    opacity: 1;
+    animation: starPop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.5);
+    filter: drop-shadow(0 4px 20px rgba(255,215,0,0.9));
+  }
+  @keyframes starPop {
+    0% { transform: scale(0.3) rotate(-180deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+
+  .wave-info {
+    text-align: center;
+    background: var(--btn-bg2);
+    border-radius: 18px;
+    padding: 20px 24px;
+    box-shadow: inset 0 0 0 1px var(--btn-border);
+    max-width: 400px;
+    width: 100%;
+    margin-bottom: 14px;
+  }
+  .wave-info h2 {
+    font-size: 26px; margin-bottom: 8px;
+    background: linear-gradient(135deg, var(--accent1), var(--accent3));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .wave-info .goal-desc {
+    font-size: 15px;
+    margin-bottom: 12px;
+    opacity: 0.85;
+  }
+  .wave-info .reward {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: linear-gradient(180deg, var(--crystal), #3d9aff);
+    color: #04203a;
+    padding: 8px 14px;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 16px;
+    margin-top: 6px;
+    box-shadow: 0 4px 16px rgba(80,180,255,0.4);
+  }
+  .wave-info .wave-stats {
+    display: flex; justify-content: center;
+    gap: 20px;
+    font-size: 14px;
+    margin: 10px 0;
+    opacity: 0.8;
+  }
+  .wave-info .wave-stats span { font-weight: 800; color: var(--accent3); font-size: 16px; }
+
+  .wave-goal-box {
+    background: rgba(0,0,0,0.3);
+    padding: 10px 14px;
+    border-radius: 12px;
+    margin: 10px 0;
+    font-size: 14px;
+  }
+  body.theme-light .wave-goal-box { background: rgba(120,80,200,0.1); }
+  .wave-goal-box .goal-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 3px 0; }
+  .wave-goal-box .goal-line .value { font-weight: 800; color: var(--accent1); }
+
+  .campaign-progress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    font-size: 12px;
+    opacity: 0.75;
+  }
+  .campaign-progress .stars-total { color: #ffd54a; font-weight: 800; }
+
+  .modal-overlay {
+    position: fixed; inset: 0;
+    z-index: 100;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+  }
+  .modal-overlay.active { display: flex; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes scaleIn {
+    from { transform: scale(0.85); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .modal {
+    background: linear-gradient(180deg, var(--board-bg1) 0%, var(--board-bg2) 100%);
+    border-radius: 22px;
+    padding: 24px 22px;
+    max-width: 360px;
+    width: 100%;
+    box-shadow:
+      0 24px 70px rgba(0,0,0,0.8),
+      0 0 0 1px var(--btn-border),
+      0 0 40px var(--board-glow),
+      inset 0 1px 0 rgba(255,255,255,0.15);
+    animation: scaleIn 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+    text-align: center;
+  }
+  .modal .modal-icon { font-size: 42px; margin-bottom: 10px; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5)); }
+  .modal .modal-title {
+    font-size: 22px; font-weight: 800; margin-bottom: 8px;
+    background: linear-gradient(135deg, var(--accent1), var(--accent3));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .modal .modal-text { font-size: 14px; opacity: 0.75; margin-bottom: 18px; line-height: 1.4; }
+  .modal .modal-actions { display: flex; flex-direction: column; gap: 8px; }
+  .modal .modal-actions .menu-btn { max-width: none; padding: 13px 18px; font-size: 15px; }
+
+  /* PWA установка — баннер */
+  #installBanner {
+    position: fixed;
+    bottom: 12px;
+    left: 12px; right: 12px;
+    z-index: 50;
+    background: linear-gradient(180deg, var(--board-bg1), var(--board-bg2));
+    border-radius: 16px;
+    padding: 12px 16px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.7), inset 0 0 0 1px var(--btn-border);
+    display: none;
+    align-items: center;
+    gap: 12px;
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    animation: slideUp 0.4s ease;
+  }
+  #installBanner.show { display: flex; }
+  @keyframes slideUp {
+    from { transform: translateY(120%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  #installBanner .ib-icon { font-size: 32px; flex-shrink: 0; }
+  #installBanner .ib-text { flex: 1; min-width: 0; }
+  #installBanner .ib-title { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+  #installBanner .ib-desc { font-size: 11px; opacity: 0.65; }
+  #installBanner .ib-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  #installBanner .ib-btn {
+    border: none; border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 12px; font-weight: 700;
+    cursor: pointer;
+  }
+  #installBanner .ib-accept {
+    background: linear-gradient(180deg, var(--accent1), var(--accent2));
+    color: #fff;
+  }
+  #installBanner .ib-cancel {
+    background: rgba(255,255,255,0.1);
+    color: var(--text);
+  }
+</style>
+</head>
+<body class="theme-neon">
+<canvas id="bg-canvas"></canvas>
+
+<div class="screen active" id="mainMenu">
+  <div class="game-title">ФРУКТОВАЯ<br>ТРИАДА</div>
+  <div class="game-sub">три в ряд</div>
+  <button class="menu-btn primary" id="btnCampaign">
+    🎯 Кампания
+    <div class="campaign-progress" style="justify-content:center;">
+      Волна <span id="menuWaveNum">1</span> · <span class="stars-total">⭐ <span id="menuStars">0</span></span>
+    </div>
+  </button>
+  <button class="menu-btn secondary" id="btnEndless">♾ Бесконечный</button>
+  <button class="menu-btn daily" id="btnDaily" style="display:none;">
+    🎁 Ежедневная награда
+    <span class="badge" id="dailyBadge">!</span>
+  </button>
+  <button class="menu-btn" id="btnShop">🛒 Магазин</button>
+  <button class="menu-btn" id="btnRecords">🏆 Рекорды</button>
+  <button class="menu-btn" id="btnSettings">⚙ Настройки</button>
+  <div class="crystal-balance" style="margin-top:14px;">
+    <span class="icon">💎</span>
+    <span id="mainCrystals">0</span>
+  </div>
+</div>
+
+<div class="screen" id="nickScreen">
+  <div class="screen-title">Как тебя зовут?</div>
+  <input type="text" id="nickInput" maxlength="16" placeholder="Введи ник" autocomplete="off" autocorrect="off" spellcheck="false">
+  <div class="nick-hint">До 16 символов. Будет записан в рекорды.</div>
+  <button class="menu-btn primary" id="btnNickStart" style="margin-top:14px;">▶ Начать игру</button>
+  <button class="menu-btn" id="btnNickBack">← Назад</button>
+</div>
+
+<div class="screen" id="recordsScreen">
+  <div class="screen-title">🏆 Рекорды</div>
+  <div id="recordsList"></div>
+  <button class="menu-btn" id="btnRecordsBack" style="margin-top:12px;">← В меню</button>
+</div>
+
+<div class="screen" id="shopScreen">
+  <div class="screen-title">🛒 Магазин</div>
+  <div class="crystal-balance">
+    <span class="icon">💎</span>
+    <span id="shopCrystals">0</span>
+  </div>
+  <div class="shop-tabs">
+    <button class="shop-tab active" data-tab="powers">⚡ Усиления</button>
+    <button class="shop-tab" data-tab="upgrades">📈 Улучшения</button>
+  </div>
+  <div class="shop-grid" id="shopGrid"></div>
+  <button class="menu-btn" id="btnShopBack" style="margin-top:12px;">← Назад</button>
+</div>
+
+<div class="screen" id="dailyScreen">
+  <div class="daily-info">
+    <h2>🎁 Ежедневная награда</h2>
+    <div class="goal-desc" style="font-size:14px;opacity:0.8;">Стрик: <span id="dailyStreakText">0</span> дней</div>
+    <div class="daily-streak" id="dailyStreak"></div>
+    <div class="goal-desc" style="font-size:13px;opacity:0.7;">
+      Заходи каждый день — награда растёт!
+    </div>
+  </div>
+  <button class="menu-btn primary" id="btnClaimDaily">Забрать награду</button>
+  <button class="menu-btn" id="btnDailyBack">← В меню</button>
+</div>
+
+<div class="screen" id="settingsScreen">
+  <div class="screen-title">⚙ Настройки</div>
+  <div class="settings-section">
+    <div class="settings-label">🎨 Тема</div>
+    <div class="theme-picker">
+      <button class="theme-chip" data-theme="neon"><div class="swatch swatch-neon"></div>Неон</button>
+      <button class="theme-chip" data-theme="dark"><div class="swatch swatch-dark"></div>Тёмная</button>
+      <button class="theme-chip" data-theme="light"><div class="swatch swatch-light"></div>Светлая</button>
+      <button class="theme-chip" data-theme="retro"><div class="swatch swatch-retro"></div>Ретро</button>
+    </div>
+  </div>
+  <div class="settings-section">
+    <div class="settings-label">📐 Размер поля</div>
+    <div class="size-picker">
+      <button class="size-chip" data-size="7">7×7</button>
+      <button class="size-chip" data-size="8">8×8</button>
+      <button class="size-chip" data-size="9">9×9</button>
+      <button class="size-chip" data-size="10">10×10</button>
+    </div>
+  </div>
+  <div class="settings-section">
+    <div class="settings-label">🔊 Звук</div>
+    <div class="switch-row">
+      <div class="label">🔈 Звуковые эффекты</div>
+      <div class="switch" id="soundSwitch"></div>
+    </div>
+    <div class="switch-row">
+      <div class="label">🔉 Громкость</div>
+      <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="60">
+      <div class="value" id="volumeValue" style="min-width:44px;">60%</div>
+    </div>
+  </div>
+  <div class="settings-section">
+    <div class="settings-label">👤 Профиль</div>
+    <div class="switch-row">
+      <div class="label">Никнейм</div>
+      <input type="text" class="value" id="setNick" maxlength="16" placeholder="—">
+    </div>
+    <div class="switch-row">
+      <div class="label">🏆 Рекорд</div>
+      <div class="value" id="setBestDisplay" style="background:transparent;">0</div>
+    </div>
+    <div class="switch-row">
+      <div class="label">🌊 Прогресс волн</div>
+      <div class="value" id="setWaveDisplay" style="background:transparent;">1</div>
+    </div>
+    <div class="switch-row">
+      <div class="label">⭐ Всего звёзд</div>
+      <div class="value" id="setStarsDisplay" style="background:transparent;">0</div>
+    </div>
+  </div>
+  <button class="menu-btn danger-btn" id="btnResetRecords">🗑 Сбросить рекорды</button>
+  <button class="menu-btn danger-btn" id="btnResetProgress">🗑 Сбросить прогресс волн</button>
+  <button class="menu-btn" id="btnSettingsBack">← В меню</button>
+</div>
+
+<div class="screen" id="waveStartScreen">
+  <div class="wave-info">
+    <h2 id="waveStartTitle">Волна 1</h2>
+    <div class="goal-desc">Цели волны:</div>
+    <div class="wave-goal-box" id="waveStartGoals"></div>
+    <div class="wave-stats">
+      <div>Ходы: <span id="waveStartMoves">25</span></div>
+    </div>
+  </div>
+  <button class="menu-btn primary" id="btnWaveStart">▶ Начать</button>
+  <button class="menu-btn" id="btnWaveStartMenu">🏠 В меню</button>
+</div>
+
+<div class="screen" id="waveCompleteScreen">
+  <div class="wave-info">
+    <h2>🎉 Волна пройдена!</h2>
+    <div class="star-row" id="waveStars">
+      <div class="star-icon">⭐</div>
+      <div class="star-icon">⭐</div>
+      <div class="star-icon">⭐</div>
+    </div>
+    <div class="wave-stats">
+      <div>Очки: <span id="waveEndScore">0</span></div>
+      <div>Ходы: <span id="waveEndMoves">0</span></div>
+    </div>
+    <div class="goal-desc">Награда:</div>
+    <div class="reward"><span>💎</span> +<span id="waveRewardCrystals">5</span></div>
+  </div>
+  <button class="menu-btn primary" id="btnWaveNext">▶ Следующая волна</button>
+  <button class="menu-btn" id="btnWaveMenu">🏠 В меню</button>
+</div>
+
+<div class="screen" id="waveFailScreen">
+  <div class="wave-info">
+    <h2>😢 Волна провалена</h2>
+    <div class="goal-desc" id="failReason">Не хватило ходов</div>
+    <div class="wave-goal-box" id="failGoals"></div>
+    <div style="margin-top:10px;font-size:13px;opacity:0.75;">Можно продолжить за кристаллы:</div>
+  </div>
+  <button class="menu-btn crystal" id="btnContinueForCrystals">💎 +5 ходов за 10💎</button>
+  <button class="menu-btn primary" id="btnRetryWave">🔄 Переиграть волну</button>
+  <button class="menu-btn" id="btnFailMenu">🏠 В меню</button>
+</div>
+
+<div class="screen" id="endlessEndScreen">
+  <div class="wave-info">
+    <h2>♾ Конец игры</h2>
+    <div class="wave-stats">
+      <div>Очки: <span id="endlessEndScore">0</span></div>
+    </div>
+    <div class="goal-desc">Награда за фарм:</div>
+    <div class="reward"><span>💎</span> +<span id="endlessRewardCrystals">0</span></div>
+    <div class="goal-desc" style="margin-top:8px;font-size:12px;">Результат записан в рекорды</div>
+  </div>
+  <button class="menu-btn primary" id="btnEndlessAgain">🔄 Ещё раз</button>
+  <button class="menu-btn" id="btnEndlessMenu">🏠 В меню</button>
+</div>
+
+<div id="gameScreen">
+  <div id="topBar">
+    <button class="icon-btn" id="btnGameMenu">☰</button>
+    <div class="stat" id="statWave" style="display:none;"><span>ВОЛНА</span><div id="waveNum">1</div></div>
+    <div class="stat"><span>СЧЁТ</span><div id="score">0</div></div>
+    <div class="stat mini" id="statMoves" style="display:none;"><span>ХОДЫ</span><div id="movesLeft">25</div></div>
+    <div class="stat mini"><span>💎</span><div id="crystalHud">0</div></div>
+  </div>
+  <div id="goalBar"><div id="goalFill"></div><div id="goalText">0 / 1000</div></div>
+  <div id="goalInfo"></div>
+  <div id="board">
+    <canvas id="cv"></canvas>
+    <div id="msg"></div>
+    <div id="comboDisplay"></div>
+    <div id="floaters"></div>
+  </div>
+  <div id="abilities">
+    <button class="ability-btn" data-ability="swap" title="Свап двух фишек">
+      🔄<span class="lbl">Свап</span><span class="count" data-count="swap">0</span>
+    </button>
+    <button class="ability-btn" data-ability="bonus" title="Добавить случайный бонус">
+      ✨<span class="lbl">Бонус</span><span class="count" data-count="bonus">0</span>
+    </button>
+    <button class="ability-btn" data-ability="remove" title="Убрать одну фишку">
+      🗑<span class="lbl">Убрать</span><span class="count" data-count="remove">0</span>
+    </button>
+    <button class="ability-btn" data-ability="shuffle" title="Перемешать поле">
+      🔀<span class="lbl">Шаффл</span><span class="count" data-count="shuffle">0</span>
+    </button>
+    <button class="ability-btn shop-open" id="btnShopInGame" title="Магазин">
+      🛒<span class="lbl">Магазин</span>
+    </button>
+  </div>
+  <div id="hint">Свайп по фишке — обмен с соседней</div>
+</div>
+
+<div class="modal-overlay" id="exitModal">
+  <div class="modal">
+    <div class="modal-icon">🏠</div>
+    <div class="modal-title">Выйти в меню?</div>
+    <div class="modal-text">Прогресс текущей волны не сохранится.<br>Кристаллы и улучшения останутся.</div>
+    <div class="modal-actions">
+      <button class="menu-btn primary" id="modalExitConfirm">🏠 В меню</button>
+      <button class="menu-btn" id="modalExitCancel">✖ Отмена</button>
+    </div>
+  </div>
+</div>
+
+<!-- Баннер установки PWA -->
+<div id="installBanner">
+  <div class="ib-icon">📱</div>
+  <div class="ib-text">
+    <div class="ib-title">Установить как приложение</div>
+    <div class="ib-desc">Играть на весь экран, офлайн</div>
+  </div>
+  <div class="ib-actions">
+    <button class="ib-btn ib-accept" id="btnInstall">Да</button>
+    <button class="ib-btn ib-cancel" id="btnInstallCancel">✖</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ============================================================
+  // НАСТРОЙКИ
+  // ============================================================
+  const SETTINGS_KEY = 'm3settings';
+  let settings = { theme: 'neon', boardSize: 9, soundOn: true, volume: 0.6 };
+  function loadSettings() {
+    try { const raw = localStorage.getItem(SETTINGS_KEY); if (raw) settings = { ...settings, ...JSON.parse(raw) }; } catch(e){}
+  }
+  function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
+  function applyTheme(t) { document.body.className = 'theme-' + t; }
+  loadSettings();
+  applyTheme(settings.theme);
+
+  // ============================================================
+  // ЗВУК
+  // ============================================================
+  let audioCtx = null;
+  function getAudio() {
+    if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ audioCtx = null; } }
+    return audioCtx;
+  }
+  function unlockAudio() { const ac = getAudio(); if (ac && ac.state === 'suspended') ac.resume(); }
+  document.addEventListener('touchstart', unlockAudio, { once: true });
+  document.addEventListener('mousedown', unlockAudio, { once: true });
+
+  function playTone(freq, dur, type, vol) {
+    if (!settings.soundOn) return;
+    const ac = getAudio(); if (!ac) return;
+    const t = ac.currentTime;
+    const osc = ac.createOscillator(); const gain = ac.createGain();
+    osc.type = type || 'sine'; osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime((vol || 0.25) * settings.volume, t + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(gain); gain.connect(ac.destination);
+    osc.start(t); osc.stop(t + dur + 0.05);
+  }
+  function playSweep(f1, f2, dur, type, vol) {
+    if (!settings.soundOn) return;
+    const ac = getAudio(); if (!ac) return;
+    const t = ac.currentTime;
+    const osc = ac.createOscillator(); const gain = ac.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.setValueAtTime(f1, t);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + dur);
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime((vol || 0.25) * settings.volume, t + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(gain); gain.connect(ac.destination);
+    osc.start(t); osc.stop(t + dur + 0.05);
+  }
+  function playNoise(dur, vol) {
+    if (!settings.soundOn) return;
+    const ac = getAudio(); if (!ac) return;
+    const t = ac.currentTime;
+    const bufSize = Math.floor(ac.sampleRate * dur);
+    const buf = ac.createBuffer(1, bufSize, ac.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufSize);
+    const src = ac.createBufferSource(); src.buffer = buf;
+    const gain = ac.createGain(); const filter = ac.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(1200, t);
+    filter.frequency.exponentialRampToValueAtTime(200, t + dur);
+    gain.gain.setValueAtTime((vol || 0.3) * settings.volume, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(filter); filter.connect(gain); gain.connect(ac.destination);
+    src.start(t);
+  }
+  let lastSfxTime = 0;
+  function canPlaySfx() {
+    const now = performance.now();
+    if (now - lastSfxTime < 30) return false;
+    lastSfxTime = now; return true;
+  }
+  const SFX = {
+    swap: () => canPlaySfx() && playTone(520, 0.08, 'sine', 0.18),
+    swapBack: () => canPlaySfx() && playTone(320, 0.1, 'sine', 0.15),
+    match: (combo) => { if (!canPlaySfx()) return; const base = 440 + Math.min(combo||0,6)*80; playTone(base,0.12,'triangle',0.25); setTimeout(()=>playTone(base*1.5,0.1,'triangle',0.2),60); },
+    bonus: () => canPlaySfx() && playSweep(400, 1200, 0.3, 'sine', 0.3),
+    explosion: () => { if (canPlaySfx()) { playNoise(0.4, 0.35); playSweep(200, 40, 0.4, 'sawtooth', 0.2); } },
+    lightning: () => { if (canPlaySfx()) { playNoise(0.15, 0.2); playSweep(1800, 600, 0.2, 'square', 0.15); } },
+    rainbow: () => canPlaySfx() && playSweep(300, 2400, 0.4, 'sine', 0.3),
+    crystal: () => { if (canPlaySfx()) { playTone(880, 0.1, 'sine', 0.25); setTimeout(()=>playTone(1320,0.15,'sine',0.22),80); } },
+    star: () => { if (canPlaySfx()) { [660,880,1100].forEach((f,i)=>setTimeout(()=>playTone(f,0.15,'triangle',0.3),i*90)); } },
+    win: () => { [523,659,784,1046].forEach((f,i)=>setTimeout(()=>playTone(f,0.2,'triangle',0.3),i*100)); },
+    lose: () => { [523,440,349,261].forEach((f,i)=>setTimeout(()=>playTone(f,0.25,'sine',0.25),i*130)); },
+    ui: () => canPlaySfx() && playTone(660, 0.05, 'sine', 0.15),
+  };
+
+  // ============================================================
+  // ХРАНИЛИЩЕ
+  // ============================================================
+  const RECORDS_KEY='m3records', PROFILE_KEY='m3profile';
+  const PROGRESS_KEY='m3progress', CRYSTALS_KEY='m3crystals', ABILITIES_KEY='m3abilities';
+  const UPGRADES_KEY='m3upgrades', STARS_KEY='m3stars', DAILY_KEY='m3daily', ENDLESS_KEY='m3endlessFarm';
+  function loadRecords(){ try{return JSON.parse(localStorage.getItem(RECORDS_KEY))||[];}catch(e){return[];} }
+  function saveRecords(l){ localStorage.setItem(RECORDS_KEY, JSON.stringify(l)); }
+  function addRecord(nick,score){ const l=loadRecords(); l.push({nick,score,date:Date.now()}); l.sort((a,b)=>b.score-a.score); saveRecords(l.slice(0,50)); }
+  function getTopBest(){ const l=loadRecords(); return l.length?l[0].score:0; }
+  function loadProfile(){ try{return JSON.parse(localStorage.getItem(PROFILE_KEY))||{nick:''};}catch(e){return{nick:''};} }
+  function saveProfile(p){ localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); }
+
+  function loadProgress(){ try{return JSON.parse(localStorage.getItem(PROGRESS_KEY))||{wave:1};}catch(e){return{wave:1};} }
+  function saveProgress(p){ localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); }
+
+  function getCrystals(){ return +(localStorage.getItem(CRYSTALS_KEY)||0); }
+  function setCrystals(v){ v = Math.max(0, Math.floor(v)); localStorage.setItem(CRYSTALS_KEY, v); updateCrystalDisplay(); }
+  function addCrystals(v){ setCrystals(getCrystals()+v); }
+
+  function getAbilities(){ try{ return JSON.parse(localStorage.getItem(ABILITIES_KEY))||{swap:3,bonus:1,remove:3,shuffle:2}; }catch(e){ return {swap:3,bonus:1,remove:3,shuffle:2}; } }
+  function saveAbilities(a){ localStorage.setItem(ABILITIES_KEY, JSON.stringify(a)); updateAbilityUI(); }
+
+  function getUpgrades(){ try{ return JSON.parse(localStorage.getItem(UPGRADES_KEY))||{score:0,hint:0,crystal:0,starthand:0}; }catch(e){ return {score:0,hint:0,crystal:0,starthand:0}; } }
+  function saveUpgrades(u){ localStorage.setItem(UPGRADES_KEY, JSON.stringify(u)); }
+
+  function getStars(){ try{ return JSON.parse(localStorage.getItem(STARS_KEY))||{}; }catch(e){ return {}; } }
+  function saveStars(s){ localStorage.setItem(STARS_KEY, JSON.stringify(s)); }
+  function getTotalStars(){ const s = getStars(); let t = 0; for (const k in s) t += s[k]; return t; }
+  function getStarsForWave(w){ const s = getStars(); return s[w] || 0; }
+  function setStarsForWave(w, stars) {
+    const s = getStars();
+    if ((s[w]||0) < stars) { s[w] = stars; saveStars(s); }
+  }
+
+  function getDaily() {
+    try { return JSON.parse(localStorage.getItem(DAILY_KEY))||{lastClaim:0, streak:0}; }
+    catch(e) { return {lastClaim:0, streak:0}; }
+  }
+  function saveDaily(d){ localStorage.setItem(DAILY_KEY, JSON.stringify(d)); }
+  function canClaimDaily() {
+    const d = getDaily();
+    const now = Date.now();
+    const oneDay = 24*60*60*1000;
+    return now - d.lastClaim >= oneDay;
+  }
+  const DAILY_REWARDS = [15, 20, 25, 30, 40, 50, 100];
+
+  function getEndlessFarm(){ return +(localStorage.getItem(ENDLESS_KEY)||0); }
+  function setEndlessFarm(v){ localStorage.setItem(ENDLESS_KEY, v); }
+
+  let profile = loadProfile();
+
+  function getUpgradeEffect() {
+    const u = getUpgrades();
+    return {
+      scoreMult: 1 + u.score * 0.05,
+      extraMoves: u.hint,
+      crystalBonus: u.crystal,
+      startHand: u.starthand,
+    };
+  }
+
+  function updateCrystalDisplay() {
+    const v = getCrystals();
+    const me = document.getElementById('mainCrystals'); if (me) me.textContent = v;
+    const sh = document.getElementById('shopCrystals'); if (sh) sh.textContent = v;
+    const hud = document.getElementById('crystalHud'); if (hud) hud.textContent = v;
+  }
+
+  function updateAbilityUI() {
+    const a = getAbilities();
+    document.querySelectorAll('.ability-btn').forEach(btn => {
+      const key = btn.dataset.ability;
+      if (!key) return;
+      const cnt = btn.querySelector('.count');
+      const v = a[key] || 0;
+      cnt.textContent = v;
+      cnt.classList.toggle('zero', v === 0);
+      btn.classList.toggle('locked', v === 0);
+    });
+  }
+
+  function updateMenuInfo() {
+    const p = loadProgress();
+    document.getElementById('menuWaveNum').textContent = p.wave;
+    document.getElementById('menuStars').textContent = getTotalStars();
+    const dailyBtn = document.getElementById('btnDaily');
+    if (canClaimDaily()) dailyBtn.style.display = '';
+    else dailyBtn.style.display = 'none';
+  }
+
+  // ============================================================
+  // ФОН
+  // ============================================================
+  (() => {
+    const bg = document.getElementById('bg-canvas');
+    const bctx = bg.getContext('2d');
+    let W, H;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    function resize() {
+      W = window.innerWidth; H = window.innerHeight;
+      bg.width = W * dpr; bg.height = H * dpr;
+      bg.style.width = W + 'px'; bg.style.height = H + 'px';
+      bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    const ORB_COLORS = [[130,80,255],[255,90,180],[80,180,255],[255,160,80],[100,255,200]];
+    const orbs = Array.from({length:6}, () => {
+      const col = ORB_COLORS[Math.floor(Math.random()*ORB_COLORS.length)];
+      return { x:Math.random()*W, y:Math.random()*H, r:130+Math.random()*220, vx:(Math.random()-0.5)*0.15, vy:(Math.random()-0.5)*0.15, col, phase:Math.random()*Math.PI*2, speed:0.3+Math.random()*0.5 };
+    });
+    const stars = Array.from({length:80}, () => ({ x:Math.random()*W, y:Math.random()*H, r:Math.random()*1.4+0.3, tw:Math.random()*Math.PI*2, sp:0.5+Math.random()*1.5, a:0.3+Math.random()*0.6 }));
+    const THEME_BG = {
+      neon: { c0:'#1a0f30', c1:'#0d0620', c2:'#050110' },
+      dark: { c0:'#1a1a1a', c1:'#0a0a0a', c2:'#000000' },
+      light: { c0:'#e8d8ff', c1:'#f5eeff', c2:'#ffffff' },
+      retro: { c0:'#0a1f0a', c1:'#051005', c2:'#000800' },
+    };
+    let t0 = performance.now();
+    function frame(now) {
+      const dt = Math.min((now - t0)/1000, 0.05); t0 = now;
+      const theme = settings.theme || 'neon';
+      const bgc = THEME_BG[theme] || THEME_BG.neon;
+      const grd = bctx.createRadialGradient(W/2,0,0,W/2,0,Math.max(W,H));
+      grd.addColorStop(0,bgc.c0); grd.addColorStop(0.5,bgc.c1); grd.addColorStop(1,bgc.c2);
+      bctx.fillStyle = grd; bctx.fillRect(0,0,W,H);
+      if (theme === 'neon' || theme === 'dark' || theme === 'retro') {
+        bctx.globalCompositeOperation = 'lighter';
+        for (const o of orbs) {
+          o.x += o.vx; o.y += o.vy;
+          if (o.x < -o.r) o.x = W+o.r; if (o.x > W+o.r) o.x = -o.r;
+          if (o.y < -o.r) o.y = H+o.r; if (o.y > H+o.r) o.y = -o.r;
+          o.phase += o.speed*dt;
+          const pulse = 0.7+0.3*Math.sin(o.phase);
+          const r = o.r*pulse;
+          const g = bctx.createRadialGradient(o.x,o.y,0,o.x,o.y,r);
+          if (theme === 'retro') {
+            g.addColorStop(0,'rgba(100,255,150,0.15)');
+            g.addColorStop(0.5,'rgba(50,200,100,0.06)');
+            g.addColorStop(1,'rgba(0,255,100,0)');
+          } else {
+            g.addColorStop(0,`rgba(${o.col[0]},${o.col[1]},${o.col[2]},0.18)`);
+            g.addColorStop(0.5,`rgba(${o.col[0]},${o.col[1]},${o.col[2]},0.07)`);
+            g.addColorStop(1,`rgba(${o.col[0]},${o.col[1]},${o.col[2]},0)`);
+          }
+          bctx.fillStyle = g; bctx.beginPath(); bctx.arc(o.x,o.y,r,0,Math.PI*2); bctx.fill();
+        }
+        bctx.globalCompositeOperation = 'source-over';
+        for (const s of stars) {
+          s.tw += s.sp*dt;
+          const a = s.a*(0.5+0.5*Math.sin(s.tw));
+          if (theme === 'retro') bctx.fillStyle = `rgba(150,255,180,${a})`;
+          else bctx.fillStyle = `rgba(255,255,255,${a})`;
+          bctx.beginPath(); bctx.arc(s.x,s.y,s.r,0,Math.PI*2); bctx.fill();
+        }
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  })();
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen, #gameScreen').forEach(el => el.classList.remove('active'));
+    const el = document.getElementById(id);
+    if (el) el.classList.add('active');
+  }
+
+  const exitModal = document.getElementById('exitModal');
+  function openExitModal() { exitModal.classList.add('active'); SFX.ui(); }
+  function closeExitModal() { exitModal.classList.remove('active'); SFX.ui(); }
+
+  // ============================================================
+  // ИГРА
+  // ============================================================
+  let COLS = 9, ROWS = 9;
+  const TYPES = ['🍎','🍇','🍋','🍊','🫐','🍓'];
+  const COLORS = [
+    { bg1:'#ff5e6c', bg2:'#c71838', glow:'#ff8b96' },
+    { bg1:'#a86bff', bg2:'#5c1fb8', glow:'#c79bff' },
+    { bg1:'#ffe66d', bg2:'#d4a017', glow:'#fff29c' },
+    { bg1:'#ffa552', bg2:'#d96b1c', glow:'#ffc48a' },
+    { bg1:'#6ba7ff', bg2:'#1e56c7', glow:'#9bc2ff' },
+    { bg1:'#ff7eb3', bg2:'#c72c6e', glow:'#ffa9cb' },
+  ];
+  const BONUS_V='V', BONUS_H='H', BONUS_R='R', BONUS_B='B';
+  const BONUS_H3='H3', BONUS_V3='V3';
+  const isStripe = x => x===BONUS_H||x===BONUS_V||x===BONUS_H3||x===BONUS_V3;
+
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  let CELL = 60;
+  const PAD = 4;
+  function layoutCanvas() {
+    const MAX_W = Math.min(window.innerWidth - 30, 500);
+    const MAX_H = window.innerHeight - 340;
+    CELL = Math.max(24, Math.floor(Math.min(MAX_W / COLS, MAX_H / ROWS, 68)));
+    cv.width = COLS*CELL*dpr; cv.height = ROWS*CELL*dpr;
+    cv.style.width = (COLS*CELL)+'px'; cv.style.height = (ROWS*CELL)+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+
+  const scoreEl = document.getElementById('score');
+  const movesEl = document.getElementById('movesLeft');
+  const msgEl = document.getElementById('msg');
+  const goalBarEl = document.getElementById('goalBar');
+  const goalFillEl = document.getElementById('goalFill');
+  const goalTextEl = document.getElementById('goalText');
+  const goalInfoEl = document.getElementById('goalInfo');
+  const floatersEl = document.getElementById('floaters');
+  const comboDisplayEl = document.getElementById('comboDisplay');
+
+  let grid = [];
+  let score = 0;
+  let animating = false;
+  let selected = null;
+  let effects = [];
+  let screenFlash = null;
+  let screenShake = null;
+  let gameRunning = false;
+  let gameMode = 'campaign';
+  let nick = '';
+  let lastMatchCombo = 0;
+  let currentCombo = 0;
+  let wave = 1;
+  let movesLeft = 25;
+  let goal = null;
+  let waveStartScore = 0;
+  let waveEnding = false;
+  let activeAbility = null;
+  let swapFirstCell = null;
+  let shopOpenedFromGame = false;
+
+  let activatedBonuses = { stripe: 0, bomb: 0, rainbow: 0 };
+  let waveStats = {
+    bonusChainThisMove: 0,
+    destroyedThisMove: 0,
+    maxCascade: 0,
+    crystalsEarned: 0,
+  };
+  let endlessCrystalsEarned = 0;
+  let endlessLastThreshold = 0;
+
+  function trackBonusActivation(bonusType) {
+    if (!bonusType) return;
+    if (bonusType === BONUS_H || bonusType === BONUS_V || bonusType === BONUS_H3 || bonusType === BONUS_V3) {
+      activatedBonuses.stripe++;
+    } else if (bonusType === BONUS_B) {
+      activatedBonuses.bomb++;
+    } else if (bonusType === BONUS_R) {
+      activatedBonuses.rainbow++;
+    }
+    waveStats.bonusChainThisMove++;
+    if (goal) {
+      for (const g of goal) {
+        if (g.type === 'bonus') g.progress = activatedBonuses.stripe + activatedBonuses.bomb + activatedBonuses.rainbow;
+        if (g.type === 'bomb') g.progress = activatedBonuses.bomb;
+      }
+    }
+    updateGoalUI();
+  }
+
+  function resetBonusTracker() { activatedBonuses = { stripe: 0, bomb: 0, rainbow: 0 }; }
+  function resetWaveStats() { waveStats = { bonusChainThisMove: 0, destroyedThisMove: 0, maxCascade: 0, crystalsEarned: 0 }; }
+
+  const rnd = n => Math.floor(Math.random()*n);
+  const inBounds = (r,c) => r>=0 && r<ROWS && c>=0 && c<COLS;
+  function makeCell() { return { t:rnd(TYPES.length), bonus:null, scale:1, y:0, dying:false, ox:0, oy:0 }; }
+
+  function spawnCrystalFloat(r, c, amount, reason) {
+    const el = document.createElement('div');
+    el.className = 'floater';
+    el.textContent = `+${amount}💎`;
+    el.style.left = (c * CELL + CELL/2) + 'px';
+    el.style.top = (r * CELL + CELL/2 - 10) + 'px';
+    el.style.transform = 'translateX(-50%)';
+    if (reason) {
+      el.style.fontSize = '12px';
+      el.innerHTML = `+${amount}💎<br><span style="font-size:9px;opacity:0.8;">${reason}</span>`;
+    }
+    floatersEl.appendChild(el);
+    setTimeout(() => el.remove(), 1100);
+  }
+
+  function showCombo(mult) {
+    comboDisplayEl.textContent = `×${mult} КОМБО!`;
+    comboDisplayEl.classList.remove('show');
+    void comboDisplayEl.offsetWidth;
+    comboDisplayEl.classList.add('show');
+    setTimeout(() => comboDisplayEl.classList.remove('show'), 700);
+  }
+
+  function generateGoals(waveNum) {
+    const isBoss = waveNum % 5 === 0;
+    const goals = [];
+    const baseScore = 800 + (waveNum - 1) * (waveNum + 4) * 12 + (isBoss ? 2000 : 0);
+    goals.push({ type: 'score', target: baseScore, progress: 0, label: `Набрать ${baseScore} очков` });
+    if (waveNum >= 3) {
+      if (waveNum % 3 === 0) {
+        const t1 = rnd(TYPES.length);
+        const t2 = rnd(TYPES.length);
+        const t2s = t2 === t1 ? (t2+1) % TYPES.length : t2;
+        const n1 = 8 + Math.floor(waveNum / 2);
+        const n2 = 6 + Math.floor(waveNum / 3);
+        goals.push({ type: 'collect', t: t1, target: n1, progress: 0, label: `Собрать ${n1} ${TYPES[t1]}` });
+        goals.push({ type: 'collect', t: t2s, target: n2, progress: 0, label: `Собрать ${n2} ${TYPES[t2s]}` });
+      } else if (waveNum % 3 === 1) {
+        const n = 3 + Math.floor(waveNum / 4);
+        goals.push({ type: 'bonus', target: n, progress: 0, label: `Активировать ${n} бонусов` });
+      } else {
+        const n = 2 + Math.floor(waveNum / 4);
+        goals.push({ type: 'bomb', target: n, progress: 0, label: `Взорвать ${n} бомб` });
+      }
+    }
+    return goals;
+  }
+
+  function getWaveMoves(waveNum) {
+    const isBoss = waveNum % 5 === 0;
+    const up = getUpgradeEffect();
+    let base;
+    if (waveNum <= 3) base = 24;
+    else if (waveNum <= 6) base = 22;
+    else if (waveNum <= 9) base = 20;
+    else if (waveNum <= 12) base = 19;
+    else base = 18;
+    if (waveNum % 10 === 0 && !isBoss) base += 1;
+    if (isBoss) base += 4;
+    base += up.extraMoves;
+    return base;
+  }
+
+  function getWaveReward(waveNum) {
+    const isBoss = waveNum % 5 === 0;
+    const up = getUpgradeEffect();
+    return 5 + Math.floor(waveNum / 2) + (isBoss ? 10 : 0) + up.crystalBonus;
+  }
+
+  function calculateStars(scoreEarned, movesLeftCount) {
+    const scoreGoal = goal ? goal.find(g => g.type === 'score') : null;
+    const targetScore = scoreGoal ? scoreGoal.target : 0;
+    const startingMoves = getWaveMoves(wave);
+    const movesRatio = movesLeftCount / startingMoves;
+    let stars = 1;
+    if (movesRatio >= 0.3 || scoreEarned >= targetScore * 1.2) stars = 2;
+    if (movesRatio >= 0.5 || scoreEarned >= targetScore * 1.5) stars = 3;
+    return stars;
+  }
+
+  function initGrid() {
+    do {
+      grid = [];
+      for (let r = 0; r < ROWS; r++) {
+        const row = [];
+        for (let c = 0; c < COLS; c++) {
+          let t, guard = 0;
+          do { t = rnd(TYPES.length); guard++; }
+          while (guard < 50 && (
+            (c >= 2 && row[c-1].t === t && row[c-2].t === t) ||
+            (r >= 2 && grid[r-1][c].t === t && grid[r-2][c].t === t)
+          ));
+          row.push({ t, bonus:null, scale:1, y:0, dying:false, ox:0, oy:0 });
+        }
+        grid.push(row);
+      }
+    } while (!hasMoves());
+  }
+
+  function findMatchesDetailed() {
+    const marks = Array.from({length:ROWS}, () => new Array(COLS).fill(false));
+    const groups = [];
+    for (let r = 0; r < ROWS; r++) {
+      let run = 1;
+      for (let c = 1; c <= COLS; c++) {
+        const same = c < COLS && grid[r][c] && grid[r][c-1] && grid[r][c].t === grid[r][c-1].t;
+        if (same) run++;
+        else {
+          if (run >= 3) {
+            const cells = [];
+            for (let k = c-run; k < c; k++) { marks[r][k] = true; cells.push({r, c:k}); }
+            groups.push({ cells, len:run, dir:'h', type: grid[r][cells[0].c].t });
+          }
+          run = 1;
+        }
+      }
+    }
+    for (let c = 0; c < COLS; c++) {
+      let run = 1;
+      for (let r = 1; r <= ROWS; r++) {
+        const same = r < ROWS && grid[r][c] && grid[r-1][c] && grid[r][c].t === grid[r-1][c].t;
+        if (same) run++;
+        else {
+          if (run >= 3) {
+            const cells = [];
+            for (let k = r-run; k < r; k++) { marks[k][c] = true; cells.push({r:k, c}); }
+            groups.push({ cells, len:run, dir:'v', type: grid[cells[0].r][c].t });
+          }
+          run = 1;
+        }
+      }
+    }
+    const anyMark = marks.some(row => row.some(v => v));
+    return anyMark ? { marks, groups } : null;
+  }
+  function findMatches() { const d = findMatchesDetailed(); return d ? d.marks : null; }
+  function hasMoves() {
+    const swapT = (a,b) => { const tmp = grid[a.r][a.c].t; grid[a.r][a.c].t = grid[b.r][b.c].t; grid[b.r][b.c].t = tmp; };
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      if (c+1 < COLS) { swapT({r,c},{r,c:c+1}); const ok = findMatches()!==null; swapT({r,c},{r,c:c+1}); if (ok) return true; }
+      if (r+1 < ROWS) { swapT({r,c},{r:r+1,c}); const ok = findMatches()!==null; swapT({r,c},{r:r+1,c}); if (ok) return true; }
+    }
+    return false;
+  }
+
+  function shuffle() {
+    let attempts = 0;
+    do {
+      const all = [];
+      for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) all.push(grid[r][c].t);
+      for (let i = all.length-1; i > 0; i--) { const j = rnd(i+1); [all[i],all[j]]=[all[j],all[i]]; }
+      let i = 0;
+      for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) {
+        grid[r][c].t = all[i++]; grid[r][c].bonus = null; grid[r][c].scale = 0;
+      }
+      attempts++;
+    } while ((findMatches()!==null || !hasMoves()) && attempts < 100);
+    const t0 = performance.now(); const dur = 320;
+    const grow = (now) => {
+      const k = Math.min(1, (now-t0)/dur); const ease = 1 - Math.pow(1-k,3);
+      for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) grid[r][c].scale = ease;
+      if (k < 1) requestAnimationFrame(grow);
+      else { for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) grid[r][c].scale = 1; }
+    };
+    requestAnimationFrame(grow);
+  }
+
+  let msgTimer = null;
+  function showMsg(text, ms = 1400) {
+    msgEl.textContent = text;
+    msgEl.classList.add('show');
+    clearTimeout(msgTimer);
+    msgTimer = setTimeout(() => msgEl.classList.remove('show'), ms);
+  }
+
+  function getBonusLine(r, c, bonus) {
+    const cells = [];
+    if (bonus === BONUS_H) { for (let k=0;k<COLS;k++) cells.push({r,c:k}); }
+    else if (bonus === BONUS_V) { for (let k=0;k<ROWS;k++) cells.push({r:k,c}); }
+    else if (bonus === BONUS_H3) {
+      for (let dr = -1; dr <= 1; dr++) {
+        const rr = r+dr; if (rr < 0 || rr >= ROWS) continue;
+        for (let k=0;k<COLS;k++) cells.push({r:rr,c:k});
+      }
+    } else if (bonus === BONUS_V3) {
+      for (let dc = -1; dc <= 1; dc++) {
+        const cc = c+dc; if (cc < 0 || cc >= COLS) continue;
+        for (let k=0;k<ROWS;k++) cells.push({r:k,c:cc});
+      }
+    } else if (bonus === BONUS_B) {
+      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        const rr=r+dr, cc=c+dc;
+        if (inBounds(rr,cc)) cells.push({r:rr,c:cc});
+      }
+    }
+    return cells;
+  }
+
+  const MAX_EFFECTS = 30;
+  function pushEffect(e) { if (effects.length >= MAX_EFFECTS) effects.shift(); effects.push(e); }
+  function spawnLightning(cells, color, thick) { pushEffect({ type:'lightning', cells, color, thick:thick||1, t0:performance.now(), dur:380 }); SFX.lightning(); }
+  function spawnRadialBurst(r, c, color, big) { pushEffect({ type:'burst', r, c, color, big, t0:performance.now(), dur:450 }); }
+  function spawnExplosion(r, c, color, big) {
+    const particles = []; const cx = c*CELL+CELL/2; const cy = r*CELL+CELL/2;
+    const n = big ? 14 : 10;
+    for (let i = 0; i < n; i++) {
+      const ang = (i/n)*Math.PI*2 + Math.random()*0.3;
+      const sp = (big ? 4 : 2.5) + Math.random()*(big?5:3.5);
+      particles.push({ x:cx, y:cy, vx:Math.cos(ang)*sp, vy:Math.sin(ang)*sp, r:(big?2.5:1.8)+Math.random()*(big?3:2), life:0.8+Math.random()*0.4, hue:Math.random()*360 });
+    }
+    pushEffect({ type:'explosion', r, c, color, particles, t0:performance.now(), dur: big?700:550, big:!!big });
+    SFX.explosion();
+  }
+  function rainbowTargets(type) {
+    const cells = [];
+    for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) if (grid[r][c] && grid[r][c].t === type) cells.push({r,c});
+    return cells;
+  }
+  function triggerScreenFlash(color, dur, strength) { screenFlash = { t0:performance.now(), dur:dur||500, color:color||'255,255,255', strength: strength != null ? strength : 0.85 }; }
+  function triggerScreenShake(mag, dur) { screenShake = { t0:performance.now(), dur:dur||400, mag:mag||8 }; }
+
+  function isWaveGoalComplete() {
+    if (!goal) return false;
+    return goal.every(g => g.progress >= g.target);
+  }
+
+  function checkWaveEnd() {
+    if (gameMode !== 'campaign') return;
+    if (waveEnding) return;
+    if (!goal) return;
+
+    if (isWaveGoalComplete()) {
+      waveEnding = true;
+      animating = false;
+      const baseReward = getWaveReward(wave);
+      const earnedScore = score - waveStartScore;
+      const stars = calculateStars(earnedScore, movesLeft);
+      setStarsForWave(wave, stars);
+      let crystalReward = baseReward + stars * 2 + (stars === 3 ? 5 : 0);
+      addCrystals(crystalReward);
+      saveProgress({ wave: wave + 1 });
+      SFX.win();
+      document.getElementById('waveEndScore').textContent = score;
+      document.getElementById('waveEndMoves').textContent = Math.max(0, movesLeft);
+      document.getElementById('waveRewardCrystals').textContent = crystalReward;
+      const starsEls = document.querySelectorAll('#waveStars .star-icon');
+      starsEls.forEach((el, i) => {
+        el.classList.remove('earned');
+        if (i < stars) {
+          setTimeout(() => { el.classList.add('earned'); SFX.star(); }, 200 + i * 250);
+        }
+      });
+      updateMenuInfo();
+      gameRunning = false;
+      setTimeout(() => showScreen('waveCompleteScreen'), 400);
+      return;
+    }
+
+    if (movesLeft <= 0 && !animating) {
+      waveEnding = true;
+      SFX.lose();
+      showWaveFail();
+    }
+  }
+
+  function resolveBoard() {
+    currentCombo = 0;
+    const step = () => {
+      const detail = findMatchesDetailed();
+      if (!detail) {
+        if (!hasMoves()) { shuffle(); animating = false; return; }
+        animating = false;
+        if (gameMode === 'campaign') checkWaveEnd();
+        return;
+      }
+      currentCombo++;
+      if (currentCombo > waveStats.maxCascade) waveStats.maxCascade = currentCombo;
+      let comboMult = 1;
+      if (currentCombo === 2) comboMult = 1.5;
+      else if (currentCombo === 3) comboMult = 2;
+      else if (currentCombo === 4) comboMult = 3;
+      else if (currentCombo >= 5) comboMult = 5;
+      if (comboMult > 1) {
+        showCombo(comboMult);
+        SFX.bonus();
+      }
+      if (currentCombo >= 4 && gameMode === 'campaign') {
+        addCrystals(5);
+        waveStats.crystalsEarned += 5;
+        const grp = detail.groups[0];
+        if (grp) { const c = grp.cells[0]; spawnCrystalFloat(c.r, c.c, 5, 'каскад!'); }
+      }
+
+      const { marks, groups } = detail;
+      const bonusPlacements = new Map();
+      for (const g of groups) {
+        if (g.len >= 5) { const mid = g.cells[Math.floor(g.len/2)]; bonusPlacements.set(`${mid.r},${mid.c}`, BONUS_R); }
+      }
+      const hGroups = groups.filter(g => g.dir === 'h');
+      const vGroups = groups.filter(g => g.dir === 'v');
+      for (const hg of hGroups) for (const vg of vGroups) {
+        if (hg.type !== vg.type) continue;
+        let shared = null;
+        for (const hc of hg.cells) { for (const vc of vg.cells) { if (hc.r === vc.r && hc.c === vc.c) { shared = hc; break; } } if (shared) break; }
+        if (!shared) continue;
+        const key = `${shared.r},${shared.c}`;
+        if (bonusPlacements.get(key) === BONUS_R) continue;
+        const unionSize = new Set([...hg.cells.map(c => `${c.r},${c.c}`), ...vg.cells.map(c => `${c.r},${c.c}`)]).size;
+        if (unionSize >= 5) bonusPlacements.set(key, BONUS_B);
+      }
+      for (const g of groups) {
+        if (g.len === 4) {
+          const mid = g.cells[Math.floor(g.len/2)];
+          const key = `${mid.r},${mid.c}`;
+          if (bonusPlacements.has(key)) continue;
+          const bonusType = g.dir === 'h' ? BONUS_V : BONUS_H;
+          bonusPlacements.set(key, bonusType);
+        }
+      }
+      const toRemove = new Set();
+      for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) if (marks[r][c]) toRemove.add(`${r},${c}`);
+
+      const bonusQueue = [];
+      for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) {
+        if (grid[r][c] && grid[r][c].bonus && marks[r][c]) bonusQueue.push({ r, c, bonus:grid[r][c].bonus, depth:0 });
+      }
+      const processedBonus = new Set();
+      const bonusesActivatedThisStep = [];
+      while (bonusQueue.length) {
+        const b = bonusQueue.shift();
+        const key = `${b.r},${b.c}`;
+        if (processedBonus.has(key)) continue;
+        processedBonus.add(key);
+        trackBonusActivation(b.bonus);
+        bonusesActivatedThisStep.push(b.bonus);
+        let line = [];
+        if (b.bonus === BONUS_R) { line = rainbowTargets(grid[b.r][b.c]?.t ?? 0); spawnRadialBurst(b.r, b.c, { glow:'#ffffff' }); }
+        else if (b.bonus === BONUS_B) { line = getBonusLine(b.r, b.c, BONUS_B); spawnExplosion(b.r, b.c, COLORS[grid[b.r][b.c]?.t ?? 0], b.depth > 0); }
+        else { line = getBonusLine(b.r, b.c, b.bonus); const thick = (b.bonus === BONUS_H3 || b.bonus === BONUS_V3) ? 3 : 1; spawnLightning(line.slice(), COLORS[grid[b.r][b.c]?.t ?? 0], thick); }
+        for (const cell of line) {
+          if (!inBounds(cell.r, cell.c)) continue;
+          if (!grid[cell.r][cell.c]) continue;
+          const k2 = `${cell.r},${cell.c}`;
+          if (!toRemove.has(k2)) {
+            toRemove.add(k2);
+            if (grid[cell.r][cell.c].bonus) bonusQueue.push({ r:cell.r, c:cell.c, bonus:grid[cell.r][cell.c].bonus, depth:b.depth+1 });
+          }
+        }
+      }
+      if (bonusesActivatedThisStep.length >= 3 && gameMode === 'campaign') {
+        addCrystals(3);
+        waveStats.crystalsEarned += 3;
+        spawnCrystalFloat(0, 0, 3, 'бонусы!');
+      }
+
+      let removed = 0;
+      const typeCounts = {};
+      for (const key of toRemove) {
+        const [r, c] = key.split(',').map(Number);
+        if (grid[r][c]) {
+          const t = grid[r][c].t;
+          typeCounts[t] = (typeCounts[t] || 0) + 1;
+          grid[r][c].dying = true; removed++;
+        }
+      }
+      if (removed >= 15 && gameMode === 'campaign') {
+        addCrystals(3);
+        waveStats.crystalsEarned += 3;
+        spawnCrystalFloat(2, 2, 3, 'много фишек!');
+      }
+      if (goal) {
+        for (const g of goal) {
+          if (g.type === 'collect') g.progress += (typeCounts[g.t] || 0);
+        }
+      }
+      for (const [key, btype] of bonusPlacements) {
+        const [r,c] = key.split(',').map(Number);
+        if (grid[r][c]) { grid[r][c].dying = false; grid[r][c].bonus = btype; grid[r][c].scale = 1; }
+        SFX.bonus();
+      }
+      if (removed > 0 && bonusPlacements.size === 0) SFX.match(lastMatchCombo++);
+      if (bonusPlacements.size > 0) lastMatchCombo = 0;
+      const up = getUpgradeEffect();
+      const pointsEarned = Math.floor(removed * 10 * comboMult * up.scoreMult);
+      score += pointsEarned;
+      if (goal) {
+        const gScore = goal.find(g => g.type === 'score');
+        if (gScore) gScore.progress = score - waveStartScore;
+      }
+      updateScore();
+      updateGoalUI();
+      if (gameMode === 'endless') {
+        const threshold = Math.floor(score / 5000);
+        if (threshold > endlessLastThreshold) {
+          const gained = (threshold - endlessLastThreshold) * 5;
+          endlessCrystalsEarned += gained;
+          endlessLastThreshold = threshold;
+          addCrystals(gained);
+          spawnCrystalFloat(3, 3, gained, 'фарм!');
+        }
+      }
+
+      const t0 = performance.now(); const dur = 200;
+      const anim = (now) => {
+        const k = Math.min(1, (now-t0)/dur);
+        for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) {
+          const cell = grid[r][c]; if (!cell) continue;
+          if (cell.dying) cell.scale = 1-k;
+        }
+        for (const [key] of bonusPlacements) { const [r,c] = key.split(',').map(Number); if (grid[r][c]) grid[r][c].scale = 0.3 + 0.7*k; }
+        updateEffects(now);
+        if (k < 1) requestAnimationFrame(anim);
+        else {
+          for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) if (grid[r][c] && grid[r][c].dying) grid[r][c] = null;
+          dropAndRefill(step);
+        }
+      };
+      requestAnimationFrame(anim);
+    };
+    animating = true;
+    requestAnimationFrame(step);
+  }
+
+  function dropAndRefill(nextStep) {
+    for (let c = 0; c < COLS; c++) {
+      let write = ROWS-1;
+      for (let r = ROWS-1; r >= 0; r--) {
+        if (grid[r][c]) { grid[write][c] = grid[r][c]; if (write !== r) grid[r][c] = null; write--; }
+      }
+      let count = write+1;
+      for (let r = write; r >= 0; r--) { const cell = makeCell(); cell.y = -(count--)*CELL; grid[r][c] = cell; }
+    }
+    const ft0 = performance.now(); const fdur = 450;
+    const fall = (now) => {
+      const k = Math.min(1, (now-ft0)/fdur);
+      const c1 = 1.1, c3 = c1+1;
+      const ease = k < 1 ? 1 + c3*Math.pow(k-1,3) + c1*Math.pow(k-1,2) : 1;
+      for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) {
+        if (grid[r][c] && grid[r][c].y < 0) {
+          grid[r][c].y = grid[r][c].y * (1-ease);
+          if (Math.abs(grid[r][c].y) < 0.5) grid[r][c].y = 0;
+        }
+      }
+      updateEffects(now);
+      if (k < 1) requestAnimationFrame(fall);
+      else {
+        for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) if (grid[r][c]) grid[r][c].y = 0;
+        requestAnimationFrame(nextStep);
+      }
+    };
+    requestAnimationFrame(fall);
+  }
+
+  function animateSwap(a, b, onDone) {
+    const cellA = grid[a.r][a.c]; const cellB = grid[b.r][b.c];
+    if (!cellA || !cellB) { onDone && onDone(); return; }
+    const dx = (b.c-a.c)*CELL; const dy = (b.r-a.r)*CELL;
+    const t0 = performance.now(); const dur = 150;
+    const anim = (now) => {
+      const k = Math.min(1, (now-t0)/dur);
+      const ease = k < 0.5 ? 2*k*k : 1 - Math.pow(-2*k+2,2)/2;
+      cellA.ox = dx*ease; cellA.oy = dy*ease;
+      cellB.ox = -dx*ease; cellB.oy = -dy*ease;
+      if (k < 1) requestAnimationFrame(anim);
+      else {
+        cellA.ox = cellA.oy = 0; cellB.ox = cellB.oy = 0;
+        const tmp = grid[a.r][a.c]; grid[a.r][a.c] = grid[b.r][b.c]; grid[b.r][b.c] = tmp;
+        onDone && onDone();
+      }
+    };
+    requestAnimationFrame(anim);
+  }
+
+  function resolveBonusCombo(a, b) {
+    const cellA = grid[a.r][a.c]; const cellB = grid[b.r][b.c];
+    const ba = cellA.bonus; const bb = cellB.bonus;
+    if (ba === BONUS_R && bb === BONUS_R) {
+      const cells = [];
+      for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) cells.push({r,c});
+      triggerScreenFlash('200,180,255', 450, 0.45);
+      triggerScreenShake(8, 500);
+      SFX.rainbow();
+      const cr = (ROWS-1)/2; const cc = (COLS-1)/2;
+      const effects = [
+        { type:'superwave', r:cr, c:cc, color:{glow:'#ff7ec7'}, delay:0, dur:700 },
+        { type:'superwave', r:cr, c:cc, color:{glow:'#63e6ff'}, delay:100, dur:700 },
+        { type:'superwave', r:cr, c:cc, color:{glow:'#ffd54a'}, delay:200, dur:700 },
+        { type:'burst', r:Math.floor(cr), c:Math.floor(cc), color:{glow:'#ffffff'}, big:true, delay:0 },
+      ];
+      return { cells, effects };
+    }
+    if (ba === BONUS_R && bb && bb !== BONUS_R) return rainbowPlusBonus({r:a.r,c:a.c}, {r:b.r,c:b.c}, bb);
+    if (bb === BONUS_R && ba && ba !== BONUS_R) return rainbowPlusBonus({r:b.r,c:b.c}, {r:a.r,c:a.c}, ba);
+    if (ba === BONUS_R || bb === BONUS_R) {
+      const rainbow = ba === BONUS_R ? {r:a.r,c:a.c} : {r:b.r,c:b.c};
+      const other = ba === BONUS_R ? {r:b.r,c:b.c} : {r:a.r,c:a.c};
+      const otherType = grid[other.r][other.c].t;
+      const cells = rainbowTargets(otherType);
+      cells.push(rainbow); cells.push(other);
+      SFX.rainbow();
+      return { cells, effects: [{type:'burst', r:rainbow.r, c:rainbow.c, color:{glow:'#ffffff'}}] };
+    }
+    if (ba === BONUS_B && bb === BONUS_B) {
+      const cells = [];
+      for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) { const rr=a.r+dr, cc=a.c+dc; if (inBounds(rr,cc)) cells.push({r:rr,c:cc}); }
+      triggerScreenShake(10, 500);
+      return { cells, effects: [
+        {type:'explosion', r:a.r, c:a.c, color:COLORS[cellA.t], big:true},
+        {type:'explosion', r:b.r, c:b.c, color:COLORS[cellB.t], big:true},
+      ]};
+    }
+    if ((isStripe(ba) && bb === BONUS_B) || (isStripe(bb) && ba === BONUS_B)) {
+      const stripe = isStripe(ba) ? {r:a.r,c:a.c,b:ba} : {r:b.r,c:b.c,b:bb};
+      const bomb = ba === BONUS_B ? {r:a.r,c:a.c} : {r:b.r,c:b.c};
+      const horiz = (stripe.b === BONUS_H || stripe.b === BONUS_H3);
+      const newBonus = horiz ? BONUS_H3 : BONUS_V3;
+      const cells = getBonusLine(bomb.r, bomb.c, newBonus);
+      for (const e of getBonusLine(stripe.r, stripe.c, BONUS_B)) if (inBounds(e.r,e.c)) cells.push(e);
+      triggerScreenShake(8, 500);
+      return { cells, effects: [
+        {type:'explosion', r:stripe.r, c:stripe.c, color:COLORS[cellA.t], big:true},
+        {type:'lightning', cells:getBonusLine(stripe.r, stripe.c, newBonus), color:COLORS[cellA.t], thick:3},
+      ]};
+    }
+    if (isStripe(ba) && isStripe(bb)) {
+      const cells = [];
+      for (const e of getBonusLine(a.r, a.c, BONUS_H)) cells.push(e);
+      for (const e of getBonusLine(a.r, a.c, BONUS_V)) cells.push(e);
+      return { cells, effects: [
+        {type:'lightning', cells:getBonusLine(a.r, a.c, BONUS_H), color:COLORS[cellA.t], thick:2},
+        {type:'lightning', cells:getBonusLine(a.r, a.c, BONUS_V), color:COLORS[cellB.t], thick:2},
+      ]};
+    }
+    if ((ba === BONUS_B || bb === BONUS_B) && !(ba && bb)) {
+      const bomb = ba === BONUS_B ? {r:a.r,c:a.c} : {r:b.r,c:b.c};
+      triggerScreenShake(6, 350);
+      return { cells: getBonusLine(bomb.r, bomb.c, BONUS_B), effects: [{type:'explosion', r:bomb.r, c:bomb.c, color:COLORS[grid[bomb.r][bomb.c].t]}] };
+    }
+    if ((isStripe(ba) || isStripe(bb)) && !(ba && bb)) {
+      const s = isStripe(ba) ? {r:a.r,c:a.c,b:ba} : {r:b.r,c:b.c,b:bb};
+      const cells = getBonusLine(s.r, s.c, s.b);
+      return { cells, effects: [{type:'lightning', cells:cells.slice(), color:COLORS[grid[s.r][s.c].t], thick:1}] };
+    }
+    return null;
+  }
+
+  function rainbowPlusBonus(rainbowPos, bonusPos, bonusType) {
+    const bonusCell = grid[bonusPos.r][bonusPos.c];
+    const targetType = bonusCell.t;
+    const cellsToRemove = new Set();
+    const effects = [];
+    effects.push({type:'burst', r:rainbowPos.r, c:rainbowPos.c, color:{glow:'#ffffff'}, big:true});
+    triggerScreenFlash('220,200,255', 350, 0.5);
+    triggerScreenShake(7, 500);
+    SFX.rainbow();
+    cellsToRemove.add(`${rainbowPos.r},${rainbowPos.c}`);
+    cellsToRemove.add(`${bonusPos.r},${bonusPos.c}`);
+    const converted = [];
+    for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) {
+      const cell = grid[r][c]; if (!cell) continue;
+      if (cell.t !== targetType) continue;
+      if ((r === rainbowPos.r && c === rainbowPos.c) || (r === bonusPos.r && c === bonusPos.c)) continue;
+      converted.push({r,c,bonusType});
+    }
+    for (const conv of converted) {
+      cellsToRemove.add(`${conv.r},${conv.c}`);
+      const line = getBonusLine(conv.r, conv.c, bonusType);
+      if (bonusType === BONUS_B) effects.push({type:'explosion', r:conv.r, c:conv.c, color:COLORS[targetType], delay:Math.random()*200});
+      else { const thick = (bonusType === BONUS_H3 || bonusType === BONUS_V3) ? 3 : 1; effects.push({type:'lightning', cells:line.slice(), color:COLORS[targetType], thick, delay:Math.random()*200}); }
+      for (const e of line) if (inBounds(e.r,e.c)) cellsToRemove.add(`${e.r},${e.c}`);
+    }
+    const bonusOwnLine = getBonusLine(bonusPos.r, bonusPos.c, bonusType);
+    if (bonusType === BONUS_B) effects.push({type:'explosion', r:bonusPos.r, c:bonusPos.c, color:COLORS[targetType], big:true});
+    else { const thick = (bonusType === BONUS_H3 || bonusType === BONUS_V3) ? 3 : 1; effects.push({type:'lightning', cells:bonusOwnLine.slice(), color:COLORS[targetType], thick}); }
+    for (const e of bonusOwnLine) if (inBounds(e.r,e.c)) cellsToRemove.add(`${e.r},${e.c}`);
+    const queue = [];
+    for (const key of cellsToRemove) {
+      const [r,c] = key.split(',').map(Number);
+      if (grid[r][c] && grid[r][c].bonus) {
+        const isSpecial = (r === rainbowPos.r && c === rainbowPos.c) || (r === bonusPos.r && c === bonusPos.c);
+        if (!isSpecial) queue.push({r,c,bonus:grid[r][c].bonus});
+      }
+    }
+    const processed = new Set();
+    while (queue.length) {
+      const x = queue.shift();
+      const kk = `${x.r},${x.c}`;
+      if (processed.has(kk)) continue;
+      processed.add(kk);
+      trackBonusActivation(x.bonus);
+      let line;
+      if (x.bonus === BONUS_R) { line = rainbowTargets(grid[x.r][x.c]?.t ?? 0); effects.push({type:'burst', r:x.r, c:x.c, color:{glow:'#ffffff'}}); }
+      else if (x.bonus === BONUS_B) { line = getBonusLine(x.r, x.c, BONUS_B); effects.push({type:'explosion', r:x.r, c:x.c, color:COLORS[grid[x.r][x.c]?.t ?? 0]}); }
+      else { line = getBonusLine(x.r, x.c, x.bonus); effects.push({type:'lightning', cells:line.slice(), color:COLORS[grid[x.r][x.c]?.t ?? 0], thick:(x.bonus === BONUS_H3 || x.bonus === BONUS_V3) ? 3 : 1}); }
+      for (const e of line) {
+        if (!inBounds(e.r,e.c)) continue;
+        const k2 = `${e.r},${e.c}`;
+        if (!cellsToRemove.has(k2)) {
+          cellsToRemove.add(k2);
+          if (grid[e.r][e.c] && grid[e.r][e.c].bonus) queue.push({r:e.r,c:e.c,bonus:grid[e.r][e.c].bonus});
+        }
+      }
+    }
+    return { cells: Array.from(cellsToRemove).map(k => { const [r,c] = k.split(',').map(Number); return {r,c}; }), effects };
+  }
+
+  function trySwap(a, b) {
+    if (animating) return;
+    if (gameMode === 'campaign' && (movesLeft <= 0 || waveEnding)) { checkWaveEnd(); return; }
+    animating = true;
+    SFX.swap();
+    animateSwap(a, b, () => {
+      const cellA = grid[a.r][a.c]; const cellB = grid[b.r][b.c];
+      const bonusA = cellA.bonus; const bonusB = cellB.bonus;
+      if (bonusA || bonusB) {
+        const combo = resolveBonusCombo(a, b);
+        if (combo) {
+          if (gameMode === 'campaign') { movesLeft--; updateMovesUI(); }
+          if (bonusA) trackBonusActivation(bonusA);
+          if (bonusB && bonusB !== bonusA) trackBonusActivation(bonusB);
+          const toRemove = new Set(combo.cells.map(c => `${c.r},${c.c}`));
+          toRemove.add(`${a.r},${a.c}`); toRemove.add(`${b.r},${b.c}`);
+          for (const e of combo.effects) scheduleEffect(e);
+          const cellsToRemove = Array.from(toRemove).map(k => { const [r,c] = k.split(',').map(Number); return {r,c}; });
+          performRemoval(cellsToRemove, false);
+          return;
+        }
+      }
+      if (findMatches()) {
+        animating = false;
+        if (gameMode === 'campaign') { movesLeft--; updateMovesUI(); }
+        resolveBoard();
+      } else {
+        SFX.swapBack();
+        animateSwap(a, b, () => { animating = false; });
+      }
+    });
+  }
+
+  function scheduleEffect(e) {
+    const delay = e.delay || 0;
+    const fire = () => {
+      if (e.type === 'lightning') spawnLightning(e.cells, e.color, e.thick);
+      else if (e.type === 'explosion') spawnExplosion(e.r, e.c, e.color, e.big);
+      else if (e.type === 'burst') spawnRadialBurst(e.r, e.c, e.color, e.big);
+      else if (e.type === 'superwave') pushEffect({ type:'superwave', r:e.r, c:e.c, color:e.color, t0:performance.now(), dur:e.dur||700 });
+    };
+    if (delay === 0) fire();
+    else setTimeout(fire, delay);
+  }
+
+  function performRemoval(cells, countAsMove) {
+    animating = true;
+    const set = new Set(cells.map(c => `${c.r},${c.c}`));
+    let removed = 0;
+    const typeCounts = {};
+    for (const key of set) {
+      const [r,c] = key.split(',').map(Number);
+      if (grid[r][c]) {
+        typeCounts[grid[r][c].t] = (typeCounts[grid[r][c].t] || 0) + 1;
+        grid[r][c].dying = true; removed++;
+      }
+    }
+    if (goal) for (const g of goal) if (g.type === 'collect') g.progress += (typeCounts[g.t] || 0);
+    const up = getUpgradeEffect();
+    const pointsEarned = Math.floor(removed * 10 * up.scoreMult);
+    score += pointsEarned;
+    if (goal) { const gScore = goal.find(g => g.type === 'score'); if (gScore) gScore.progress = score - waveStartScore; }
+    if (countAsMove && gameMode === 'campaign') { movesLeft--; updateMovesUI(); }
+    updateScore();
+    updateGoalUI();
+    const t0 = performance.now(); const dur = 200;
+    const anim = (now) => {
+      const k = Math.min(1, (now-t0)/dur);
+      for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) if (grid[r][c] && grid[r][c].dying) grid[r][c].scale = 1-k;
+      updateEffects(now);
+      if (k < 1) requestAnimationFrame(anim);
+      else {
+        for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) if (grid[r][c] && grid[r][c].dying) grid[r][c] = null;
+        if (gameMode === 'campaign') checkWaveEnd();
+        dropAndRefill(() => resolveBoard());
+      }
+    };
+    requestAnimationFrame(anim);
+  }
+
+  function updateEffects(now) {
+    for (let i = effects.length-1; i >= 0; i--) {
+      const e = effects[i];
+      if (now - e.t0 >= e.dur) { effects.splice(i,1); continue; }
+      if (e.type === 'explosion') {
+        for (const p of e.particles) {
+          p.x += p.vx; p.y += p.vy;
+          p.vx *= 0.93; p.vy *= 0.93;
+          p.vy += 0.15; p.life -= 0.02;
+        }
+      }
+    }
+  }
+
+  function drawEffects() {
+    const now = performance.now();
+    for (const e of effects) {
+      const k = Math.min(1, (now-e.t0)/e.dur);
+      const alpha = 1-k;
+      if (e.type === 'superwave') {
+        const cx = e.c*CELL+CELL/2; const cy = e.r*CELL+CELL/2;
+        const maxR = Math.hypot(COLS*CELL, ROWS*CELL);
+        const r = maxR*k;
+        const col = e.color?.glow || '#ffffff';
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        const ringW = 40*(1-k)+10;
+        const grd = ctx.createRadialGradient(cx,cy,Math.max(0,r-ringW),cx,cy,r+ringW);
+        grd.addColorStop(0,`rgba(${hexToRgb(col)},0)`);
+        grd.addColorStop(0.5,`rgba(${hexToRgb(col)},${alpha*0.5})`);
+        grd.addColorStop(1,`rgba(${hexToRgb(col)},0)`);
+        ctx.fillStyle = grd;
+        ctx.beginPath(); ctx.arc(cx,cy,r+ringW,0,Math.PI*2); ctx.fill();
+        ctx.restore();
+      } else if (e.type === 'lightning') {
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        const col = e.color || { glow:'#ffffff' };
+        const baseW = 6*(e.thick||1);
+        ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+        ctx.lineWidth = baseW*(1-k*0.5);
+        ctx.shadowColor = col.glow || '#ffffff';
+        ctx.shadowBlur = 24;
+        ctx.beginPath();
+        const sorted = [...e.cells].sort((a,b) => (a.r-b.r) || (a.c-b.c));
+        for (let i = 0; i < sorted.length; i++) {
+          const cell = sorted[i];
+          const x = cell.c*CELL+CELL/2; const y = cell.r*CELL+CELL/2;
+          const jx = (Math.sin(i*12.9898 + e.t0*0.05)*3)*(1-k);
+          const jy = (Math.cos(i*78.233 + e.t0*0.05)*3)*(1-k);
+          if (i === 0) ctx.moveTo(x+jx, y+jy); else ctx.lineTo(x+jx, y+jy);
+        }
+        ctx.stroke();
+        ctx.strokeStyle = `rgba(${hexToRgb(col.glow||'#ffffff')},${alpha*0.5})`;
+        ctx.lineWidth = baseW*2.6*(1-k);
+        ctx.shadowBlur = 40;
+        ctx.stroke();
+        ctx.restore();
+      } else if (e.type === 'burst') {
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        const cx = e.c*CELL+CELL/2; const cy = e.r*CELL+CELL/2;
+        const r = CELL*(0.5+(e.big?4:2.2)*k);
+        const g = ctx.createRadialGradient(cx,cy,0,cx,cy,r);
+        g.addColorStop(0,`rgba(255,255,255,${alpha})`);
+        g.addColorStop(0.4,`rgba(255,240,180,${alpha*0.5})`);
+        g.addColorStop(1,'rgba(255,255,255,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+        ctx.restore();
+      } else if (e.type === 'explosion') {
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        const cx = e.c*CELL+CELL/2; const cy = e.r*CELL+CELL/2;
+        const col = e.color || { glow:'#ffaa00' };
+        const scale = e.big ? 1.5 : 1;
+        const ringR = CELL*(0.3+2.6*k)*scale;
+        ctx.strokeStyle = `rgba(255,255,255,${alpha*0.9})`;
+        ctx.lineWidth = 5*(1-k);
+        ctx.shadowColor = col.glow || '#ffcc44';
+        ctx.shadowBlur = 22;
+        ctx.beginPath(); ctx.arc(cx,cy,ringR,0,Math.PI*2); ctx.stroke();
+        const flashR = CELL*(1.2-k*1.0)*scale;
+        if (flashR > 0) {
+          const g = ctx.createRadialGradient(cx,cy,0,cx,cy,flashR);
+          g.addColorStop(0,`rgba(255,255,255,${alpha})`);
+          g.addColorStop(1,'rgba(255,200,100,0)');
+          ctx.fillStyle = g;
+          ctx.beginPath(); ctx.arc(cx,cy,flashR,0,Math.PI*2); ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+        for (const p of e.particles) {
+          if (p.life <= 0) continue;
+          const pa = Math.min(1, p.life);
+          ctx.fillStyle = `hsla(${p.hue}, 100%, 65%, ${pa*alpha})`;
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.r*pa, 0, Math.PI*2); ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+  }
+
+  function hexToRgb(hex) {
+    const h = hex.replace('#','');
+    const n = parseInt(h.length === 3 ? h.split('').map(x=>x+x).join('') : h, 16);
+    return `${(n>>16)&255},${(n>>8)&255},${n&255}`;
+  }
+  function themeCellColors() {
+    const theme = settings.theme;
+    if (theme === 'light') return { a:'rgba(120,80,200,0.06)', b:'rgba(120,80,200,0.12)' };
+    if (theme === 'retro') return { a:'rgba(125,255,165,0.05)', b:'rgba(125,255,165,0.1)' };
+    if (theme === 'dark') return { a:'rgba(255,255,255,0.025)', b:'rgba(255,255,255,0.05)' };
+    return { a:'rgba(255,255,255,0.035)', b:'rgba(255,255,255,0.07)' };
+  }
+
+  function draw() {
+    const now = performance.now();
+    ctx.save();
+    if (screenShake) {
+      const k = (now-screenShake.t0)/screenShake.dur;
+      if (k < 1) { const m = screenShake.mag*(1-k); ctx.translate((Math.random()-0.5)*m, (Math.random()-0.5)*m); }
+      else screenShake = null;
+    }
+    ctx.clearRect(-50,-50,COLS*CELL+100,ROWS*CELL+100);
+    const cellColors = themeCellColors();
+    for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) {
+      const x = c*CELL, y = r*CELL;
+      ctx.fillStyle = ((r+c)%2===0) ? cellColors.a : cellColors.b;
+      roundRect(ctx, x+PAD/2, y+PAD/2, CELL-PAD, CELL-PAD, 12);
+      ctx.fill();
+    }
+    if (swapFirstCell) {
+      ctx.save(); ctx.shadowColor = '#63e6ff'; ctx.shadowBlur = 16;
+      ctx.strokeStyle = '#63e6ff'; ctx.lineWidth = 3;
+      roundRect(ctx, swapFirstCell.c*CELL+3, swapFirstCell.r*CELL+3, CELL-6, CELL-6, 12); ctx.stroke();
+      ctx.restore();
+    }
+    if (selected) {
+      const {r,c} = selected;
+      ctx.save(); ctx.shadowColor = '#fff'; ctx.shadowBlur = 14;
+      ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.lineWidth = 3;
+      roundRect(ctx, c*CELL+3, r*CELL+3, CELL-6, CELL-6, 12); ctx.stroke();
+      ctx.restore();
+    }
+    for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) {
+      const cell = grid[r] && grid[r][c];
+      if (!cell) continue;
+      if (cell.dying && cell.scale <= 0) continue;
+      const cx = c*CELL+CELL/2+(cell.ox||0);
+      const cy = r*CELL+CELL/2+(cell.y||0)+(cell.oy||0);
+      const s = cell.scale ?? 1;
+      const col = COLORS[cell.t];
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(s, s);
+      if (cell.bonus) {
+        const pulse = 1 + 0.08*Math.sin(now*0.006 + (r*7 + c*13)*0.3);
+        ctx.scale(pulse, pulse);
+      }
+      if (cell.bonus === BONUS_R) { const t = now*0.003; ctx.shadowColor = `hsl(${(t*60)%360}, 100%, 65%)`; ctx.shadowBlur = 28; }
+      else if (cell.bonus === BONUS_B) { ctx.shadowColor = '#ff8800'; ctx.shadowBlur = 26; }
+      else if (cell.bonus === BONUS_H3 || cell.bonus === BONUS_V3) { ctx.shadowColor = '#ffdd00'; ctx.shadowBlur = 30; }
+      else if (cell.bonus) { ctx.shadowColor = col.glow; ctx.shadowBlur = 22; }
+      else { ctx.shadowColor = col.bg2; ctx.shadowBlur = 12; }
+      ctx.shadowOffsetY = 3;
+      if (cell.bonus === BONUS_R) {
+        const t = now*0.002;
+        const grd = ctx.createConicGradient ? ctx.createConicGradient(t, 0, 0) : null;
+        if (grd) for (let i = 0; i <= 6; i++) grd.addColorStop(i/6, `hsl(${(i*60+t*50)%360}, 95%, 60%)`);
+        ctx.fillStyle = grd || '#fff';
+        ctx.beginPath(); ctx.arc(0,0,CELL*0.44,0,Math.PI*2); ctx.fill();
+        ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+        const g2 = ctx.createRadialGradient(0,0,0,0,0,CELL*0.3);
+        g2.addColorStop(0,'rgba(255,255,255,0.9)');
+        g2.addColorStop(0.6,'rgba(255,255,255,0.2)');
+        g2.addColorStop(1,'rgba(0,0,0,0.25)');
+        ctx.fillStyle = g2;
+        ctx.beginPath(); ctx.arc(0,0,CELL*0.32,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.beginPath(); ctx.ellipse(-CELL*0.1,-CELL*0.16,CELL*0.16,CELL*0.08,-0.5,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.font = `${CELL*0.4}px serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('✨', 0, CELL*0.03);
+      } else {
+        const grd = ctx.createRadialGradient(-CELL*0.1,-CELL*0.15,CELL*0.05,0,0,CELL*0.5);
+        grd.addColorStop(0, col.bg1); grd.addColorStop(1, col.bg2);
+        ctx.fillStyle = grd;
+        ctx.beginPath(); ctx.arc(0,0,CELL*0.42,0,Math.PI*2); ctx.fill();
+        ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.beginPath(); ctx.ellipse(-CELL*0.1,-CELL*0.18,CELL*0.22,CELL*0.12,-0.5,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(0,0,CELL*0.42,0,Math.PI*2); ctx.stroke();
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.font = `${CELL*0.55}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif`;
+        ctx.fillText(TYPES[cell.t], 0, CELL*0.04);
+        if (cell.bonus === BONUS_H || cell.bonus === BONUS_H3) {
+          const lines = cell.bonus === BONUS_H3 ? 3 : 2;
+          const spacing = CELL*0.14;
+          const offsetStart = -(lines-1)*spacing/2;
+          const glowPhase = (now*0.003)%1;
+          for (let i = 0; i < lines; i++) {
+            const y = offsetStart + i*spacing;
+            const g = ctx.createLinearGradient(-CELL*0.42,0,CELL*0.42,0);
+            g.addColorStop(Math.max(0,glowPhase-0.3),'rgba(255,255,255,0.2)');
+            g.addColorStop(glowPhase,'rgba(255,255,255,1)');
+            g.addColorStop(Math.min(1,glowPhase+0.3),'rgba(255,255,255,0.2)');
+            ctx.fillStyle = g; ctx.fillRect(-CELL*0.42, y-2, CELL*0.84, 4);
+          }
+          ctx.fillStyle = 'rgba(255,255,255,0.95)';
+          ctx.beginPath(); ctx.moveTo(-CELL*0.36,0); ctx.lineTo(-CELL*0.28,-CELL*0.08); ctx.lineTo(-CELL*0.28,CELL*0.08); ctx.closePath(); ctx.fill();
+          ctx.beginPath(); ctx.moveTo(CELL*0.36,0); ctx.lineTo(CELL*0.28,-CELL*0.08); ctx.lineTo(CELL*0.28,CELL*0.08); ctx.closePath(); ctx.fill();
+        } else if (cell.bonus === BONUS_V || cell.bonus === BONUS_V3) {
+          const lines = cell.bonus === BONUS_V3 ? 3 : 2;
+          const spacing = CELL*0.14;
+          const offsetStart = -(lines-1)*spacing/2;
+          const glowPhase = (now*0.003)%1;
+          for (let i = 0; i < lines; i++) {
+            const x = offsetStart + i*spacing;
+            const g = ctx.createLinearGradient(0,-CELL*0.42,0,CELL*0.42);
+            g.addColorStop(Math.max(0,glowPhase-0.3),'rgba(255,255,255,0.2)');
+            g.addColorStop(glowPhase,'rgba(255,255,255,1)');
+            g.addColorStop(Math.min(1,glowPhase+0.3),'rgba(255,255,255,0.2)');
+            ctx.fillStyle = g; ctx.fillRect(x-2, -CELL*0.42, 4, CELL*0.84);
+          }
+          ctx.fillStyle = 'rgba(255,255,255,0.95)';
+          ctx.beginPath(); ctx.moveTo(0,-CELL*0.36); ctx.lineTo(-CELL*0.08,-CELL*0.28); ctx.lineTo(CELL*0.08,-CELL*0.28); ctx.closePath(); ctx.fill();
+          ctx.beginPath(); ctx.moveTo(0,CELL*0.36); ctx.lineTo(-CELL*0.08,CELL*0.28); ctx.lineTo(CELL*0.08,CELL*0.28); ctx.closePath(); ctx.fill();
+        } else if (cell.bonus === BONUS_B) {
+          ctx.save();
+          ctx.shadowColor = '#ff5500'; ctx.shadowBlur = 18;
+          const bg2 = ctx.createRadialGradient(-CELL*0.08,-CELL*0.1,2,0,0,CELL*0.38);
+          bg2.addColorStop(0,'#3a2a1a'); bg2.addColorStop(1,'#0a0500');
+          ctx.fillStyle = bg2; ctx.beginPath(); ctx.arc(0,0,CELL*0.38,0,Math.PI*2); ctx.fill();
+          const bombG = ctx.createRadialGradient(-CELL*0.1,-CELL*0.12,2,0,0,CELL*0.32);
+          bombG.addColorStop(0,'#4a4a4a'); bombG.addColorStop(0.7,'#1a1a1a'); bombG.addColorStop(1,'#000000');
+          ctx.fillStyle = bombG; ctx.beginPath(); ctx.arc(0,0,CELL*0.32,0,Math.PI*2); ctx.fill();
+          ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+          ctx.fillStyle = 'rgba(255,255,255,0.6)';
+          ctx.beginPath(); ctx.ellipse(-CELL*0.1,-CELL*0.13,CELL*0.09,CELL*0.05,-0.5,0,Math.PI*2); ctx.fill();
+          ctx.strokeStyle = '#8a5a2b'; ctx.lineWidth = 2.5;
+          ctx.beginPath(); ctx.moveTo(CELL*0.06,-CELL*0.3); ctx.quadraticCurveTo(CELL*0.18,-CELL*0.4,CELL*0.22,-CELL*0.3); ctx.stroke();
+          const sparkPhase = now*0.01;
+          const sparkR = 3 + Math.sin(sparkPhase)*1.5;
+          const sg = ctx.createRadialGradient(CELL*0.22,-CELL*0.3,0,CELL*0.22,-CELL*0.3,sparkR*3);
+          sg.addColorStop(0,'rgba(255,255,200,1)');
+          sg.addColorStop(0.5,'rgba(255,180,0,0.8)');
+          sg.addColorStop(1,'rgba(255,80,0,0)');
+          ctx.fillStyle = sg;
+          ctx.beginPath(); ctx.arc(CELL*0.22,-CELL*0.3,sparkR*3,0,Math.PI*2); ctx.fill();
+          ctx.restore();
+        }
+      }
+      ctx.restore();
+    }
+    drawEffects();
+    ctx.restore();
+    if (screenFlash) {
+      const k = (now-screenFlash.t0)/screenFlash.dur;
+      if (k < 1) {
+        const a = (1-k)*screenFlash.strength;
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = `rgba(${screenFlash.color},${a})`;
+        ctx.fillRect(-50,-50,COLS*CELL+100,ROWS*CELL+100);
+        ctx.restore();
+      } else screenFlash = null;
+    }
+  }
+
+  function loop() { if (gameRunning) draw(); requestAnimationFrame(loop); }
+  function roundRect(ctx,x,y,w,h,r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+
+  function updateScore() { scoreEl.textContent = score; }
+  function updateMovesUI() { if (gameMode === 'campaign') movesEl.textContent = Math.max(0, movesLeft); }
+  function updateGoalUI() {
+    if (!goal || gameMode !== 'campaign') { goalBarEl.classList.remove('active'); goalInfoEl.classList.remove('active'); return; }
+    goalBarEl.classList.add('active');
+    const scoreGoal = goal.find(g => g.type === 'score');
+    if (scoreGoal) {
+      const pct = Math.min(100, (scoreGoal.progress / scoreGoal.target) * 100);
+      goalFillEl.style.width = pct + '%';
+      goalTextEl.textContent = `${Math.min(scoreGoal.progress, scoreGoal.target)} / ${scoreGoal.target}`;
+    }
+    const extras = goal.filter(g => g.type !== 'score');
+    if (extras.length) {
+      goalInfoEl.classList.add('active');
+      goalInfoEl.innerHTML = extras.map(g => {
+        const done = g.progress >= g.target;
+        return `<div class="goal-row ${done ? 'done' : 'pending'}">${done ? '✅' : '⬜'} ${g.label} — ${Math.min(g.progress, g.target)}/${g.target}</div>`;
+      }).join('');
+    } else {
+      goalInfoEl.classList.remove('active');
+    }
+  }
+
+  function startWave(waveNum) {
+    wave = waveNum;
+    COLS = settings.boardSize;
+    ROWS = settings.boardSize;
+    layoutCanvas();
+    initGrid();
+    score = 0;
+    waveStartScore = 0;
+    movesLeft = getWaveMoves(waveNum);
+    goal = generateGoals(waveNum);
+    effects = [];
+    selected = null;
+    activeAbility = null;
+    swapFirstCell = null;
+    animating = false;
+    waveEnding = false;
+    resetBonusTracker();
+    resetWaveStats();
+    const up = getUpgradeEffect();
+    for (let i = 0; i < up.startHand; i++) {
+      const r = rnd(ROWS), c = rnd(COLS);
+      if (grid[r][c]) grid[r][c].bonus = BONUS_H;
+    }
+    gameRunning = true;
+    gameMode = 'campaign';
+    updateScore();
+    updateMovesUI();
+    updateGoalUI();
+    document.getElementById('waveNum').textContent = waveNum;
+    document.getElementById('statWave').style.display = '';
+    document.getElementById('statMoves').style.display = '';
+    updateAbilityUI();
+    updateCrystalDisplay();
+    showScreen('gameScreen');
+  }
+
+  function showWaveStart(waveNum) {
+    const goals = generateGoals(waveNum);
+    const moves = getWaveMoves(waveNum);
+    const isBoss = waveNum % 5 === 0;
+    document.getElementById('waveStartTitle').textContent = (isBoss ? '👑 БОСС-ВОЛНА ' : 'Волна ') + waveNum;
+    const goalsBox = document.getElementById('waveStartGoals');
+    goalsBox.innerHTML = goals.map(g => `<div class="goal-line"><span>${g.label}</span></div>`).join('');
+    document.getElementById('waveStartMoves').textContent = moves;
+    showScreen('waveStartScreen');
+  }
+
+  function showWaveFail() {
+    const reason = document.getElementById('failReason');
+    reason.textContent = 'Цели не выполнены, ходы закончились';
+    const failBox = document.getElementById('failGoals');
+    failBox.innerHTML = goal.map(g => {
+      const done = g.progress >= g.target;
+      return `<div class="goal-line"><span>${done ? '✅' : '❌'} ${g.label}</span><span class="value">${Math.min(g.progress, g.target)}/${g.target}</span></div>`;
+    }).join('');
+    const canBuy = getCrystals() >= 10;
+    const btn = document.getElementById('btnContinueForCrystals');
+    btn.disabled = !canBuy;
+    btn.textContent = canBuy ? '💎 +5 ходов за 10💎' : '💎 Нужно 10💎';
+    gameRunning = false;
+    selected = null;
+    activeAbility = null;
+    swapFirstCell = null;
+    document.querySelectorAll('.ability-btn').forEach(x => x.classList.remove('active'));
+    showScreen('waveFailScreen');
+  }
+
+  function useAbility(key) {
+    if (animating || !gameRunning) return;
+    if (gameMode === 'campaign' && (movesLeft <= 0 || waveEnding)) return;
+    const a = getAbilities();
+    if ((a[key] || 0) <= 0) return;
+    if (key === 'shuffle') {
+      a.shuffle--; saveAbilities(a);
+      SFX.bonus(); shuffle(); showMsg('🔀 Поле перемешано'); return;
+    }
+    if (key === 'bonus') {
+      a.bonus--; saveAbilities(a);
+      SFX.bonus();
+      const r = rnd(ROWS), c = rnd(COLS);
+      const types = [BONUS_H, BONUS_V, BONUS_B, BONUS_R];
+      grid[r][c].bonus = types[rnd(types.length)];
+      grid[r][c].scale = 0.3;
+      const t0 = performance.now();
+      const anim = (now) => {
+        const k = Math.min(1, (now-t0)/250);
+        grid[r][c].scale = 0.3 + 0.7*k;
+        if (k < 1) requestAnimationFrame(anim); else grid[r][c].scale = 1;
+      };
+      requestAnimationFrame(anim);
+      showMsg('✨ Бонус добавлен!');
+      return;
+    }
+    if (key === 'swap' || key === 'remove') {
+      document.querySelectorAll('.ability-btn').forEach(x => x.classList.remove('active'));
+      const btn = document.querySelector(`.ability-btn[data-ability="${key}"]`);
+      if (btn) btn.classList.add('active');
+      activeAbility = key;
+      swapFirstCell = null;
+      showMsg(key === 'swap' ? '🔄 Выбери первую фишку' : '🗑 Выбери фишку для удаления');
+      return;
+    }
+  }
+
+  function performSwapAbility(a, b) {
+    const A = getAbilities();
+    if ((A.swap || 0) <= 0) return;
+    A.swap--; saveAbilities(A);
+    activeAbility = null; swapFirstCell = null;
+    document.querySelectorAll('.ability-btn').forEach(x => x.classList.remove('active'));
+    SFX.swap();
+    animating = true;
+    animateSwap(a, b, () => {
+      const bonusA = grid[a.r][a.c].bonus;
+      const bonusB = grid[b.r][b.c].bonus;
+      const combo = (bonusA || bonusB) ? resolveBonusCombo(a, b) : null;
+      if (combo) {
+        if (bonusA) trackBonusActivation(bonusA);
+        if (bonusB && bonusB !== bonusA) trackBonusActivation(bonusB);
+        const toRemove = new Set(combo.cells.map(c => `${c.r},${c.c}`));
+        toRemove.add(`${a.r},${a.c}`); toRemove.add(`${b.r},${b.c}`);
+        for (const e of combo.effects) scheduleEffect(e);
+        const cellsToRemove = Array.from(toRemove).map(k => { const [r,c] = k.split(',').map(Number); return {r,c}; });
+        performRemoval(cellsToRemove, false);
+        return;
+      }
+      animating = false;
+      resolveBoard();
+    });
+  }
+
+  function performRemoveAbility(r, c) {
+    const A = getAbilities();
+    if ((A.remove || 0) <= 0) return;
+    A.remove--; saveAbilities(A);
+    activeAbility = null;
+    document.querySelectorAll('.ability-btn').forEach(x => x.classList.remove('active'));
+    SFX.explosion();
+    if (grid[r][c]) spawnExplosion(r, c, COLORS[grid[r][c].t], false);
+    performRemoval([{r,c}], false);
+  }
+
+  function getPos(e) {
+    const rect = cv.getBoundingClientRect();
+    const touch = e.touches ? e.touches[0] : e;
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    const c = Math.floor(x / CELL); const r = Math.floor(y / CELL);
+    return { r, c, x, y };
+  }
+  let pointerStart = null;
+
+  const onDown = (e) => {
+    e.preventDefault();
+    if (animating || !gameRunning) return;
+    if (exitModal.classList.contains('active')) return;
+    if (gameMode === 'campaign' && waveEnding) return;
+    if (gameMode === 'campaign' && movesLeft <= 0) { checkWaveEnd(); return; }
+    const p = getPos(e);
+    if (!inBounds(p.r, p.c)) return;
+    if (activeAbility === 'remove') { performRemoveAbility(p.r, p.c); return; }
+    if (activeAbility === 'swap') {
+      if (!swapFirstCell) { swapFirstCell = {r:p.r, c:p.c}; SFX.swap(); return; }
+      if (swapFirstCell.r === p.r && swapFirstCell.c === p.c) { swapFirstCell = null; return; }
+      const a = swapFirstCell; const b = {r:p.r, c:p.c};
+      performSwapAbility(a, b);
+      return;
+    }
+    pointerStart = { ...p, time: performance.now() };
+    if (selected) {
+      const dr = Math.abs(selected.r - p.r); const dc = Math.abs(selected.c - p.c);
+      if (dr+dc === 1) { const a = selected; const b = { r:p.r, c:p.c }; selected = null; trySwap(a,b); pointerStart = null; return; }
+      else if (dr === 0 && dc === 0) { selected = null; pointerStart = null; return; }
+    }
+    selected = { r:p.r, c:p.c };
+  };
+  const onMove = (e) => {
+    if (activeAbility || !pointerStart || animating || !gameRunning) return;
+    if (gameMode === 'campaign' && (movesLeft <= 0 || waveEnding)) return;
+    e.preventDefault();
+    const p = getPos(e);
+    const dx = p.x-pointerStart.x; const dy = p.y-pointerStart.y;
+    const dist = Math.hypot(dx,dy);
+    if (dist < CELL*0.3) return;
+    const sr = pointerStart.r, sc = pointerStart.c;
+    let tr = sr, tc = sc;
+    if (Math.abs(dx) > Math.abs(dy)) tc += dx > 0 ? 1 : -1; else tr += dy > 0 ? 1 : -1;
+    pointerStart = null; selected = null;
+    if (!inBounds(tr, tc)) return;
+    trySwap({ r:sr, c:sc }, { r:tr, c:tc });
+  };
+  const onUp = () => { pointerStart = null; };
+  cv.addEventListener('touchstart', onDown, { passive: false });
+  cv.addEventListener('touchmove', onMove, { passive: false });
+  cv.addEventListener('touchend', onUp);
+  cv.addEventListener('touchcancel', onUp);
+  cv.addEventListener('mousedown', onDown);
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+
+  document.querySelectorAll('.ability-btn').forEach(btn => {
+    const ab = btn.dataset.ability;
+    if (ab) btn.addEventListener('click', () => useAbility(ab));
+  });
+
+  const SHOP_POWERS = [
+    { key:'swap', icon:'🔄', name:'Свап', desc:'Поменять две любые фишки', cost: 8 },
+    { key:'bonus', icon:'✨', name:'Бонус', desc:'Случайный бонус на поле', cost: 12 },
+    { key:'remove', icon:'🗑', name:'Убрать', desc:'Удалить одну фишку', cost: 5 },
+    { key:'shuffle', icon:'🔀', name:'Перемешать', desc:'Полный шаффл поля', cost: 6 },
+    { key:'moves', icon:'➕', name:'+5 ходов', desc:'Дополнительные ходы в текущей волне', cost: 15, isMoves: true },
+  ];
+
+  const SHOP_UPGRADES = [
+    { key:'score', icon:'💰', name:'Мастер очков', desc:'+5% к очкам за уровень', maxLevel: 5, costs: [30, 50, 80, 120, 180] },
+    { key:'hint', icon:'🎯', name:'Запас ходов', desc:'+1 ход в начале каждой волны', maxLevel: 3, costs: [50, 100, 200] },
+    { key:'crystal', icon:'💎', name:'Кристальный магнит', desc:'+1💎 к награде за волну', maxLevel: 3, costs: [40, 80, 150] },
+    { key:'starthand', icon:'✨', name:'Стартовый бонус', desc:'+1 бонус на поле в начале волны', maxLevel: 2, costs: [100, 250] },
+  ];
+
+  let currentShopTab = 'powers';
+
+  function renderShop() {
+    updateCrystalDisplay();
+    const grid = document.getElementById('shopGrid');
+    const crystals = getCrystals();
+    document.querySelectorAll('.shop-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === currentShopTab));
+
+    if (currentShopTab === 'powers') {
+      const a = getAbilities();
+      grid.innerHTML = SHOP_POWERS.map(it => {
+        let disabled;
+        if (it.isMoves) disabled = crystals < it.cost || gameMode !== 'campaign';
+        else disabled = crystals < it.cost;
+        const count = !it.isMoves ? `<div class="level-info">В запасе: ${a[it.key] || 0}</div>` : '';
+        return `
+          <div class="shop-item">
+            <div class="icon">${it.icon}</div>
+            <div class="info">
+              <div class="name">${it.name}</div>
+              <div class="desc">${it.desc}</div>
+              ${count}
+            </div>
+            <button class="buy-btn" data-buy="${it.key}" data-cost="${it.cost}" ${disabled ? 'disabled' : ''}>
+              💎 ${it.cost}
+            </button>
+          </div>
+        `;
+      }).join('');
+    } else {
+      const u = getUpgrades();
+      grid.innerHTML = SHOP_UPGRADES.map(it => {
+        const level = u[it.key] || 0;
+        const maxed = level >= it.maxLevel;
+        const cost = maxed ? 0 : it.costs[level];
+        const disabled = maxed || crystals < cost;
+        const btnText = maxed ? '✓ МАКС' : `💎 ${cost}`;
+        return `
+          <div class="shop-item">
+            <div class="icon">${it.icon}</div>
+            <div class="info">
+              <div class="name">${it.name}</div>
+              <div class="desc">${it.desc}</div>
+              <div class="level-info">Уровень: ${level} / ${it.maxLevel}</div>
+            </div>
+            <button class="buy-btn ${maxed ? 'maxed' : ''}" data-upgrade="${it.key}" data-cost="${cost}" ${disabled ? 'disabled' : ''}>
+              ${btnText}
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    grid.querySelectorAll('.buy-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cost = +btn.dataset.cost;
+        if (getCrystals() < cost) return;
+        if (btn.dataset.upgrade) {
+          const key = btn.dataset.upgrade;
+          const u = getUpgrades();
+          const it = SHOP_UPGRADES.find(x => x.key === key);
+          if ((u[key]||0) >= it.maxLevel) return;
+          setCrystals(getCrystals() - cost);
+          u[key] = (u[key]||0) + 1;
+          saveUpgrades(u);
+          SFX.crystal();
+          renderShop();
+          return;
+        }
+        const key = btn.dataset.buy;
+        if (key === 'moves') {
+          if (gameMode !== 'campaign') return;
+          setCrystals(getCrystals() - cost);
+          movesLeft += 5;
+          updateMovesUI();
+          SFX.crystal();
+          renderShop();
+          return;
+        }
+        setCrystals(getCrystals() - cost);
+        const a = getAbilities();
+        a[key] = (a[key]||0) + 1;
+        saveAbilities(a);
+        SFX.crystal();
+        renderShop();
+      });
+    });
+  }
+
+  document.querySelectorAll('.shop-tab').forEach(t => {
+    t.addEventListener('click', () => {
+      currentShopTab = t.dataset.tab;
+      renderShop();
+    });
+  });
+
+  function openShop(fromGame) {
+    shopOpenedFromGame = !!fromGame;
+    if (fromGame) {
+      document.getElementById('shopScreen').classList.add('inGame');
+      document.getElementById('btnShopBack').textContent = '✖ Закрыть';
+    } else {
+      document.getElementById('shopScreen').classList.remove('inGame');
+      document.getElementById('btnShopBack').textContent = '← В меню';
+    }
+    renderShop();
+    document.getElementById('shopScreen').classList.add('active');
+    SFX.ui();
+  }
+
+  function closeShop() {
+    document.getElementById('shopScreen').classList.remove('active');
+    document.getElementById('shopScreen').classList.remove('inGame');
+    SFX.ui();
+    if (shopOpenedFromGame) {
+      showScreen('gameScreen');
+      shopOpenedFromGame = false;
+    } else {
+      showScreen('mainMenu');
+    }
+  }
+
+  document.getElementById('btnShopBack').addEventListener('click', closeShop);
+
+  document.getElementById('btnShopInGame').addEventListener('click', () => {
+    if (animating) return;
+    if (gameMode === 'campaign' && (movesLeft <= 0 || waveEnding)) return;
+    activeAbility = null;
+    swapFirstCell = null;
+    selected = null;
+    document.querySelectorAll('.ability-btn').forEach(x => x.classList.remove('active'));
+    openShop(true);
+  });
+
+  function renderDaily() {
+    const d = getDaily();
+    const now = Date.now();
+    const oneDay = 24*60*60*1000;
+    const daysSinceLast = Math.floor((now - d.lastClaim) / oneDay);
+    let currentStreak = d.streak;
+    if (daysSinceLast >= 2) currentStreak = 0;
+    const todayIdx = currentStreak % 7;
+    document.getElementById('dailyStreakText').textContent = currentStreak;
+
+    const container = document.getElementById('dailyStreak');
+    container.innerHTML = DAILY_REWARDS.map((reward, i) => {
+      const claimed = i < todayIdx || (currentStreak > 0 && currentStreak % 7 === 0 && d.lastClaim > 0 && now - d.lastClaim < oneDay);
+      const isToday = i === todayIdx && canClaimDaily();
+      const cls = claimed ? 'claimed' : (isToday ? 'today' : '');
+      return `<div class="daily-day ${cls}">
+        День ${i+1}
+        <div class="num">${reward}💎</div>
+      </div>`;
+    }).join('');
+
+    const btn = document.getElementById('btnClaimDaily');
+    if (canClaimDaily()) {
+      btn.disabled = false;
+      btn.textContent = `Забрать ${DAILY_REWARDS[todayIdx]}💎`;
+    } else {
+      btn.disabled = true;
+      btn.textContent = 'Уже получено — приходи завтра';
+    }
+  }
+
+  document.getElementById('btnClaimDaily').addEventListener('click', () => {
+    if (!canClaimDaily()) return;
+    const d = getDaily();
+    const now = Date.now();
+    const oneDay = 24*60*60*1000;
+    const daysSinceLast = Math.floor((now - d.lastClaim) / oneDay);
+    let streak = d.streak;
+    if (daysSinceLast >= 2) streak = 0;
+    const todayIdx = streak % 7;
+    const reward = DAILY_REWARDS[todayIdx];
+    addCrystals(reward);
+    SFX.crystal();
+    streak++;
+    saveDaily({ lastClaim: now, streak });
+    renderDaily();
+    updateMenuInfo();
+    SFX.win();
+  });
+
+  document.getElementById('btnDailyBack').addEventListener('click', () => {
+    showScreen('mainMenu');
+    updateMenuInfo();
+  });
+
+  function ensureNick(then) {
+    if (profile.nick) { then(); return; }
+    document.getElementById('nickInput').value = '';
+    showScreen('nickScreen');
+    window.__afterNick = then;
+  }
+
+  document.getElementById('btnCampaign').addEventListener('click', () => {
+    SFX.ui();
+    ensureNick(() => {
+      const p = loadProgress();
+      showWaveStart(p.wave);
+    });
+  });
+  document.getElementById('btnEndless').addEventListener('click', () => {
+    SFX.ui();
+    ensureNick(() => {
+      gameMode = 'endless';
+      COLS = settings.boardSize;
+      ROWS = settings.boardSize;
+      layoutCanvas();
+      initGrid();
+      score = 0; movesLeft = Infinity; goal = null;
+      effects = []; selected = null; activeAbility = null; swapFirstCell = null;
+      waveEnding = false;
+      resetBonusTracker();
+      resetWaveStats();
+      endlessCrystalsEarned = 0;
+      endlessLastThreshold = 0;
+      gameRunning = true;
+      document.getElementById('statWave').style.display = 'none';
+      document.getElementById('statMoves').style.display = 'none';
+      goalBarEl.classList.remove('active');
+      goalInfoEl.classList.remove('active');
+      updateScore();
+      updateAbilityUI();
+      updateCrystalDisplay();
+      showScreen('gameScreen');
+    });
+  });
+  document.getElementById('btnDaily').addEventListener('click', () => {
+    SFX.ui();
+    renderDaily();
+    showScreen('dailyScreen');
+  });
+  document.getElementById('btnShop').addEventListener('click', () => openShop(false));
+  document.getElementById('btnRecords').addEventListener('click', () => { SFX.ui(); renderRecords(); showScreen('recordsScreen'); });
+  document.getElementById('btnRecordsBack').addEventListener('click', () => { SFX.ui(); showScreen('mainMenu'); });
+  document.getElementById('btnSettings').addEventListener('click', () => {
+    SFX.ui();
+    document.getElementById('setNick').value = profile.nick || '';
+    document.getElementById('setBestDisplay').textContent = getTopBest();
+    document.getElementById('setWaveDisplay').textContent = loadProgress().wave;
+    document.getElementById('setStarsDisplay').textContent = getTotalStars();
+    document.querySelectorAll('.theme-chip').forEach(x => x.classList.toggle('active', x.dataset.theme === settings.theme));
+    document.querySelectorAll('.size-chip').forEach(x => x.classList.toggle('active', +x.dataset.size === settings.boardSize));
+    document.getElementById('soundSwitch').classList.toggle('on', settings.soundOn);
+    document.getElementById('volumeSlider').value = Math.round(settings.volume*100);
+    document.getElementById('volumeValue').textContent = Math.round(settings.volume*100) + '%';
+    showScreen('settingsScreen');
+  });
+  document.getElementById('btnSettingsBack').addEventListener('click', () => {
+    SFX.ui();
+    const v = document.getElementById('setNick').value.trim();
+    if (v) { profile.nick = v; saveProfile(profile); }
+    showScreen('mainMenu');
+  });
+  document.getElementById('btnResetRecords').addEventListener('click', () => {
+    if (confirm('Удалить ВСЕ рекорды?')) { saveRecords([]); document.getElementById('setBestDisplay').textContent = '0'; }
+  });
+  document.getElementById('btnResetProgress').addEventListener('click', () => {
+    if (confirm('Сбросить прогресс волн и звёзды?')) {
+      saveProgress({wave:1});
+      saveStars({});
+      saveUpgrades({score:0,hint:0,crystal:0,starthand:0});
+      document.getElementById('setWaveDisplay').textContent = '1';
+      document.getElementById('setStarsDisplay').textContent = '0';
+      updateMenuInfo();
+    }
+  });
+
+  document.getElementById('btnNickStart').addEventListener('click', () => {
+    const v = document.getElementById('nickInput').value.trim();
+    if (!v) return;
+    profile.nick = v; saveProfile(profile);
+    const fn = window.__afterNick; window.__afterNick = null;
+    if (fn) fn(); else showScreen('mainMenu');
+  });
+  document.getElementById('btnNickBack').addEventListener('click', () => { window.__afterNick = null; showScreen('mainMenu'); });
+
+  document.getElementById('btnWaveStart').addEventListener('click', () => {
+    const p = loadProgress();
+    startWave(p.wave);
+  });
+  document.getElementById('btnWaveStartMenu').addEventListener('click', () => showScreen('mainMenu'));
+  document.getElementById('btnWaveNext').addEventListener('click', () => {
+    const p = loadProgress();
+    showWaveStart(p.wave);
+  });
+  document.getElementById('btnWaveMenu').addEventListener('click', () => { gameRunning = false; updateMenuInfo(); showScreen('mainMenu'); });
+  document.getElementById('btnRetryWave').addEventListener('click', () => {
+    waveEnding = false;
+    showWaveStart(wave);
+  });
+  document.getElementById('btnFailMenu').addEventListener('click', () => { gameRunning = false; updateMenuInfo(); showScreen('mainMenu'); });
+  document.getElementById('btnContinueForCrystals').addEventListener('click', () => {
+    if (getCrystals() < 10) return;
+    setCrystals(getCrystals() - 10);
+    SFX.crystal();
+    movesLeft += 5;
+    updateMovesUI();
+    waveEnding = false;
+    gameRunning = true;
+    gameMode = 'campaign';
+    showScreen('gameScreen');
+    updateGoalUI();
+  });
+
+  document.getElementById('btnEndlessAgain').addEventListener('click', () => {
+    document.getElementById('btnEndless').click();
+  });
+  document.getElementById('btnEndlessMenu').addEventListener('click', () => { updateMenuInfo(); showScreen('mainMenu'); });
+
+  document.getElementById('btnGameMenu').addEventListener('click', () => {
+    if (animating) return;
+    openExitModal();
+  });
+
+  document.getElementById('modalExitConfirm').addEventListener('click', () => {
+    closeExitModal();
+    if (gameMode === 'endless') {
+      if (score > 0) addRecord(profile.nick, score);
+      gameRunning = false;
+      document.getElementById('endlessEndScore').textContent = score;
+      document.getElementById('endlessRewardCrystals').textContent = endlessCrystalsEarned;
+      updateMenuInfo();
+      showScreen('endlessEndScreen');
+      return;
+    }
+    gameRunning = false;
+    updateMenuInfo();
+    showScreen('mainMenu');
+  });
+  document.getElementById('modalExitCancel').addEventListener('click', closeExitModal);
+  exitModal.addEventListener('click', (e) => { if (e.target === exitModal) closeExitModal(); });
+
+  document.querySelectorAll('.theme-chip').forEach(c => c.addEventListener('click', () => {
+    settings.theme = c.dataset.theme; saveSettings(); applyTheme(settings.theme);
+    document.querySelectorAll('.theme-chip').forEach(x => x.classList.toggle('active', x.dataset.theme === settings.theme));
+  }));
+  document.querySelectorAll('.size-chip').forEach(c => c.addEventListener('click', () => {
+    settings.boardSize = +c.dataset.size; saveSettings();
+    document.querySelectorAll('.size-chip').forEach(x => x.classList.toggle('active', +x.dataset.size === settings.boardSize));
+  }));
+  document.getElementById('soundSwitch').addEventListener('click', (e) => {
+    settings.soundOn = !settings.soundOn; saveSettings();
+    e.target.classList.toggle('on', settings.soundOn);
+    if (settings.soundOn) { unlockAudio(); playTone(660, 0.1, 'sine', 0.3); }
+  });
+  document.getElementById('volumeSlider').addEventListener('input', (e) => {
+    settings.volume = +e.target.value/100; saveSettings();
+    document.getElementById('volumeValue').textContent = e.target.value + '%';
+  });
+  document.getElementById('volumeSlider').addEventListener('change', () => playTone(520, 0.1, 'sine', 0.3));
+
+  function renderRecords() {
+    const list = loadRecords();
+    const container = document.getElementById('recordsList');
+    if (!list.length) { container.innerHTML = '<div style="padding:24px;text-align:center;opacity:0.5;">Пока пусто.</div>'; return; }
+    container.innerHTML = list.slice(0,20).map((r,i) => {
+      const isMe = r.nick === profile.nick;
+      const d = new Date(r.date);
+      const dd = String(d.getDate()).padStart(2,'0');
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      return `<div class="record-row ${isMe ? 'me' : ''}">
+        <div class="record-place">#${i+1}</div>
+        <div class="record-name">${esc(r.nick)}</div>
+        <div class="record-score">${r.score}</div>
+        <div class="record-date">${dd}.${mm}</div>
+      </div>`;
+    }).join('');
+  }
+  function esc(s) { return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
+
+  // ============================================================
+  // PWA — УСТАНОВКА
+  // ============================================================
+  let deferredPrompt = null;
+  const installBanner = document.getElementById('installBanner');
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    // не показываем если уже отказались в этой сессии
+    if (!sessionStorage.getItem('installDismissed')) {
+      installBanner.classList.add('show');
+    }
+  });
+  document.getElementById('btnInstall').addEventListener('click', async () => {
+    if (!deferredPrompt) { installBanner.classList.remove('show'); return; }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log('PWA install outcome:', outcome);
+    deferredPrompt = null;
+    installBanner.classList.remove('show');
+  });
+  document.getElementById('btnInstallCancel').addEventListener('click', () => {
+    installBanner.classList.remove('show');
+    sessionStorage.setItem('installDismissed', '1');
+  });
+
+  // Регистрация Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('SW registered:', reg.scope))
+        .catch(err => console.log('SW error:', err));
+    });
+  }
+
+  // ============================================================
+  // СТАРТ
+  // ============================================================
+  updateCrystalDisplay();
+  updateAbilityUI();
+  updateMenuInfo();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
